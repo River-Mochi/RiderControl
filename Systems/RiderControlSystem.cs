@@ -28,13 +28,13 @@ namespace RiderControl
 
         protected override void OnUpdate()
         {
-            var settings = Mod.Settings;
-            var ecb = m_EndFrameBarrier.CreateCommandBuffer();
+            Setting settings = Mod.Settings;
+            EntityCommandBuffer ecb = m_EndFrameBarrier.CreateCommandBuffer();
 
             if (!settings.BlockTaxiUsage)
             {
                 // Only undo what RiderControl applied.
-                foreach (var (resident, entity) in SystemAPI
+                foreach ((RefRW<Resident> resident, Entity entity) in SystemAPI
                              .Query<RefRW<Resident>>()
                              .WithAll<RiderControlForcedIgnoreTaxi>()
                              .WithEntityAccess())
@@ -47,7 +47,7 @@ namespace RiderControl
             }
 
             // 1) Remove taxi as a pathfinding option.
-            foreach (var (resident, entity) in SystemAPI
+            foreach ((RefRW<Resident> resident, Entity entity) in SystemAPI
                          .Query<RefRW<Resident>>()
                          .WithNone<RiderControlForcedIgnoreTaxi>()
                          .WithEntityAccess())
@@ -61,7 +61,7 @@ namespace RiderControl
             // - clear Taxi + ParkingSpace flags
             // - force re-path (Obsolete)
             // - remove RideNeeder so RideNeederSystem won't spawn TaxiRequest
-            foreach (var (lane, pathOwner, entity) in SystemAPI
+            foreach ((RefRW<HumanCurrentLane> lane, RefRW<PathOwner> pathOwner, Entity entity) in SystemAPI
                          .Query<RefRW<HumanCurrentLane>, RefRW<PathOwner>>()
                          .WithEntityAccess())
             {
@@ -80,7 +80,7 @@ namespace RiderControl
 
             // 3) Extra safety: remove any remaining RideNeeder while enabled.
             // (Correct SystemAPI usage: query a component, not Entity.)
-            foreach (var entity in SystemAPI
+            foreach ((RefRO<RideNeeder>, Entity) entity in SystemAPI
                          .Query<RefRO<RideNeeder>>()
                          .WithEntityAccess())
             {

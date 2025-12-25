@@ -26,7 +26,7 @@ namespace RiderControl
  
                 // Tab + group
                 { m_Setting.GetOptionTabLocaleID(Setting.kMainTab), "Main" },
-                { m_Setting.GetOptionGroupLocaleID(Setting.kBehaviorGroup),Behavior" },
+                { m_Setting.GetOptionGroupLocaleID(Setting.kBehaviorGroup), "Behavior" },
  
                 // Options
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiUsage)), "Block taxi usage" },
