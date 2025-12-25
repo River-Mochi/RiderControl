@@ -1,0 +1,7 @@
+- prevents new taxi selection by forcing ResidentFlags.IgnoreTaxi, which RouteUtils.GetTaxiMethods(...) uses to remove PathMethod.Taxi.
+- prevents the “stuck at taxi lane” loop by actively clearing CreatureLaneFlags.Taxi and forcing a re-path (PathFlags.Obsolete) the moment taxis are disabled.
+- prevents outside taxi spawning by ensuring there are no TaxiRequest entities for TaxiDispatchSystem/TransportDepotAISystem to act on.
+- Approach here already shuts down both local and outside taxi supply by killing demand + requests.
+  - optional: TransportDepotData.m_TransportType == TransportType.Taxi “outside depot” path in TransportDepotAISystem
+  - (it’s where TaxiFlags.FromOutside gets set)
+  - optional extra guard that specifically targets only those outside depots/vehicles but not needed.
