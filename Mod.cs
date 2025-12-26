@@ -1,8 +1,9 @@
 // Mod.cs
-// Entry point for "Rider Control".
+// Entry point for "Smart Traveler".
 
 namespace RiderControl
 {
+    using System.IO;
     using System.Reflection;
     using Colossal.IO.AssetDatabase;
     using Colossal.Localization;
@@ -14,10 +15,13 @@ namespace RiderControl
 
     public sealed class Mod : IMod
     {
-        public const string ModName = "Rider Control";
-        public const string ModId = "RiderControl";
-        public const string ModTag = "[RC]";
-        public const string ShortName = "Rider Control";
+        public const string ModName = "Smart Traveler";
+        public const string ModId = "SmartTraveler";
+
+        // If you want the tag to be [RC], set it here and keep it consistent everywhere.
+        public const string ModTag = "[ST]";
+
+        public const string ShortName = "Smart Traveler";
 
         private static bool s_BannerLogged;
 
@@ -40,27 +44,34 @@ namespace RiderControl
                 s_Log.Info($"{ModId} {ModTag} v{ModVersion} OnLoad");
             }
 
+            // Stabilize file logging: keep the stream open (still Colossal.Logging, not UnityEngine.Debug).
+            if (s_Log is UnityLogger unityLogger)
+            {
+                unityLogger.keepStreamOpen = true;
+
+                // Ensure log directory exists (prevents Open() failing on missing folder).
+                try
+                {
+                    string? dir = Path.GetDirectoryName(unityLogger.logPath);
+                    if (!string.IsNullOrEmpty(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                }
+                catch
+                {
+                    // Do not crash OnLoad for logging setup.
+                }
+            }
+
             Setting setting = new Setting(this);
             Setting = setting;
 
             // Locales: EN only for now.
-            // Add more locales later as you create files.
             LocalizationManager? lm = GameManager.instance?.localizationManager;
             if (lm != null)
             {
                 lm.AddSource("en-US", new LocaleEN(setting));
-
-                // lm.AddSource("de-DE", new LocaleDE(setting));
-                // lm.AddSource("es-ES", new LocaleES(setting));
-                // lm.AddSource("fr-FR", new LocaleFR(setting));
-                // lm.AddSource("it-IT", new LocaleIT(setting));
-                // lm.AddSource("ja-JP", new LocaleJA(setting));
-                // lm.AddSource("ko-KR", new LocaleKO(setting));
-                // lm.AddSource("pl-PL", new LocalePL(setting));
-                // lm.AddSource("pt-BR", new LocalePT_BR(setting));
-                // lm.AddSource("pt-PT", new LocalePT_PT(setting));
-                // lm.AddSource("zh-HANS", new LocaleZH_CN(setting));
-                // lm.AddSource("zh-HANT", new LocaleZH_HANT(setting));
             }
             else
             {
@@ -74,20 +85,19 @@ namespace RiderControl
             // Register in Options UI last.
             setting.RegisterInOptionsUI();
 
-            // Run before ResidentAISystem so we can unwind taxi-wait state cleanly.
-            updateSystem.UpdateBefore<RiderControlSystem, ResidentAISystem>(SystemUpdatePhase.GameSimulation);
+            // RiderControl run after ResidentAISystem (so it “sticks”) and before TaxiDispatchSystem
+            // (so it can cancel requests before dispatch happens).
+            updateSystem.UpdateAfter<RiderControlSystem, ResidentAISystem>(SystemUpdatePhase.GameSimulation);
+            updateSystem.UpdateBefore<RiderControlSystem, TaxiDispatchSystem>(SystemUpdatePhase.GameSimulation);
+            updateSystem.UpdateBefore<RiderControlSystem, RideNeederSystem>(SystemUpdatePhase.GameSimulation);
         }
 
         public void OnDispose()
         {
             s_Log.Info(nameof(OnDispose));
-            if (Setting != null)
-            {
-                Setting.UnregisterInOptionsUI();
-                Setting = null;
-            }
 
-   
+            Setting?.UnregisterInOptionsUI();
+            Setting = null;
         }
     }
 }
