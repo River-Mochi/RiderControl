@@ -17,10 +17,7 @@ namespace RiderControl
     {
         public const string ModName = "Smart Traveler";
         public const string ModId = "SmartTraveler";
-
-        // If you want the tag to be [RC], set it here and keep it consistent everywhere.
         public const string ModTag = "[ST]";
-
         public const string ShortName = "Smart Traveler";
 
         private static bool s_BannerLogged;

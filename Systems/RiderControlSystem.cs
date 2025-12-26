@@ -143,7 +143,7 @@ namespace RiderControl
 
             if (!setting.BlockTaxiUsage)
             {
-                // Undo only for entities we marked.
+                // Undo only for entities [ST] marked.
                 foreach ((RefRW<Resident> resident, Entity entity) in SystemAPI
                              .Query<RefRW<Resident>>()
                              .WithAll<RiderControlForcedIgnoreTaxi>()
