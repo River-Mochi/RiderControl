@@ -543,8 +543,8 @@ namespace RiderControl
                 $"outSeekers(ignoreTaxi={s_StatusReqOutsideSeekerIgnoreTaxi}/{s_StatusReqOutsideSeekerHasResident}), " +
                 $"passengers(ignoreTaxi={s_StatusPassengerIgnoreTaxi}/{s_StatusPassengerHasResident}, totalPassengers={s_StatusPassengerTotal}), " +
                 $"residents(ignoreTaxi={s_StatusResidentsIgnoreTaxi}/{s_StatusResidentsTotal}, forcedMarker={s_StatusResidentsForcedMarker}), " +
-                $"commuters(household ignoreTaxi={s_StatusCommutersIgnoreTaxi}/{s_StatusCommutersTotal}, blockCommutersToo={setting.BlockCommutersToo}), " +
-                $"tourists(household ignoreTaxi={s_StatusTouristsIgnoreTaxi}/{s_StatusTouristsTotal}, blockTouristsToo={setting.BlockTouristsToo}), " +
+                $"commuters(ignoreTaxi={s_StatusCommutersIgnoreTaxi}/{s_StatusCommutersTotal}, blockCommutersToo={setting.BlockCommutersToo}), " +
+                $"tourists(ignoreTaxi={s_StatusTouristsIgnoreTaxi}/{s_StatusTouristsTotal}, blockTouristsToo={setting.BlockTouristsToo}), " +
                 $"waitingTransport(total={s_StatusWaitingTransportTotal}, taxiStand={s_StatusWaitingTaxiStandTotal}), " +
                 $"blockTaxiUsage={setting.BlockTaxiUsage}");
         }

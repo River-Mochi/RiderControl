@@ -26,20 +26,16 @@ namespace RiderControl
     )]
     public sealed class Setting : ModSetting
     {
-        // ---- Tabs ----
         public const string ActionsTab = "Actions";
         public const string AboutTab = "About";
 
-        // ---- Groups ----
         public const string BehaviorGroup = "Druthers";
         public const string DebugGroup = "Debug";
         public const string StatusGroup = "Status";
 
-        // About tab groups
         public const string AboutInfoGroup = "Info";
         public const string AboutLinksGroup = "Support Links";
 
-        // ---- External links ----
         private const string UrlParadox =
             "https://mods.paradoxplaza.com/authors/River-mochi/cities_skylines_2?games=cities_skylines_2&orderBy=desc&sortBy=best&time=alltime";
 
@@ -50,7 +46,7 @@ namespace RiderControl
             SetDefaults();
         }
 
-        // ---- Actions tab ----
+        // ---- Actions ----
 
         [SettingsUISection(ActionsTab, BehaviorGroup)]
         public bool BlockTaxiUsage
@@ -76,9 +72,7 @@ namespace RiderControl
             get; set;
         }
 
-        // -------------------------
-        // Actions tab: STATUS (compact + readable)
-        // -------------------------
+        // ---- Status (compact) ----
 
         [SettingsUISection(ActionsTab, StatusGroup)]
         public string StatusSnapshotMeta =>
@@ -86,19 +80,19 @@ namespace RiderControl
 
         [SettingsUISection(ActionsTab, StatusGroup)]
         public string StatusResidents =>
-            $"residents ignoreTaxi={RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusResidentsTotal:N0} | marked={RiderControlSystem.s_StatusResidentsForcedMarker:N0}";
+            $"ignoreTaxi={RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusResidentsTotal:N0} | marked={RiderControlSystem.s_StatusResidentsForcedMarker:N0}";
 
         [SettingsUISection(ActionsTab, StatusGroup)]
         public string StatusCommuters =>
-            $"commuters(household) ignoreTaxi={RiderControlSystem.s_StatusCommutersIgnoreTaxi:N0}/{RiderControlSystem.s_StatusCommutersTotal:N0} | blockCommutersToo={BlockCommutersToo}";
+            $"ignoreTaxi={RiderControlSystem.s_StatusCommutersIgnoreTaxi:N0}/{RiderControlSystem.s_StatusCommutersTotal:N0} | toggle={BlockCommutersToo}";
 
         [SettingsUISection(ActionsTab, StatusGroup)]
         public string StatusTourists =>
-            $"tourists(household) ignoreTaxi={RiderControlSystem.s_StatusTouristsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusTouristsTotal:N0} | blockTouristsToo={BlockTouristsToo}";
+            $"ignoreTaxi={RiderControlSystem.s_StatusTouristsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusTouristsTotal:N0} | toggle={BlockTouristsToo}";
 
         [SettingsUISection(ActionsTab, StatusGroup)]
         public string StatusRequests =>
-            $"requests stand={RiderControlSystem.s_StatusReqStand:N0} | customer={RiderControlSystem.s_StatusReqCustomer:N0} | outside={RiderControlSystem.s_StatusReqOutside:N0} | none={RiderControlSystem.s_StatusReqNone:N0}";
+            $"stand={RiderControlSystem.s_StatusReqStand:N0} | customer={RiderControlSystem.s_StatusReqCustomer:N0} | outside={RiderControlSystem.s_StatusReqOutside:N0} | none={RiderControlSystem.s_StatusReqNone:N0}";
 
         [SettingsUISection(ActionsTab, StatusGroup)]
         public string StatusTaxiFleet =>
@@ -110,22 +104,22 @@ namespace RiderControl
 
         [SettingsUISection(ActionsTab, StatusGroup)]
         public string StatusPassengers =>
-            $"passengers residentIgnoreTaxi={RiderControlSystem.s_StatusPassengerIgnoreTaxi:N0}/{RiderControlSystem.s_StatusPassengerHasResident:N0} | totalPassengers={RiderControlSystem.s_StatusPassengerTotal:N0}";
+            $"residentIgnoreTaxi={RiderControlSystem.s_StatusPassengerIgnoreTaxi:N0}/{RiderControlSystem.s_StatusPassengerHasResident:N0} | total={RiderControlSystem.s_StatusPassengerTotal:N0}";
 
         [SettingsUISection(ActionsTab, StatusGroup)]
         public string StatusWaiting =>
             $"waitingTransport={RiderControlSystem.s_StatusWaitingTransportTotal:N0} | taxiStandWaiters={RiderControlSystem.s_StatusWaitingTaxiStandTotal:N0}";
 
+        // Split into 2 rows so it fits nicely
         [SettingsUISection(ActionsTab, StatusGroup)]
-        public string StatusLastUpdate =>
-            $"lastUpdate ignoreTaxiApplied={RiderControlSystem.s_StatusLastAppliedIgnoreTaxi:N0} | " +
-            $"commutersSkipped={RiderControlSystem.s_StatusLastSkippedCommuters:N0} | " +
-            $"touristsSkipped={RiderControlSystem.s_StatusLastSkippedTourists:N0} | " +
-            $"taxiLaneCleared={RiderControlSystem.s_StatusLastClearedTaxiLaneWaiting:N0} | " +
-            $"taxiStandCleared={RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} | " +
-            $"rideNeederRemoved={RiderControlSystem.s_StatusLastRemovedRideNeeder:N0}";
+        public string StatusWorkDone1 =>
+            $"ignoreTaxiApplied={RiderControlSystem.s_StatusLastAppliedIgnoreTaxi:N0} | rideNeederRemoved={RiderControlSystem.s_StatusLastRemovedRideNeeder:N0} | taxiLaneCleared={RiderControlSystem.s_StatusLastClearedTaxiLaneWaiting:N0}";
 
-        // ---- About tab ----
+        [SettingsUISection(ActionsTab, StatusGroup)]
+        public string StatusWorkDone2 =>
+            $"taxiStandCleared={RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} | commutersSkipped={RiderControlSystem.s_StatusLastSkippedCommuters:N0} | touristsSkipped={RiderControlSystem.s_StatusLastSkippedTourists:N0}";
+
+        // ---- About ----
 
         [SettingsUISection(AboutTab, AboutInfoGroup)]
         public string NameDisplay => Mod.ModName;
