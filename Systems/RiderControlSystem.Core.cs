@@ -19,7 +19,7 @@ namespace RiderControl
     using Unity.Entities;
     using LoadPurpose = Colossal.Serialization.Entities.Purpose;
 
-    internal struct RiderControlForcedIgnoreTaxi : IComponentData
+    internal struct IgnoreTaxiMark : IComponentData
     {
     }
 
@@ -69,7 +69,8 @@ namespace RiderControl
                 return;
             }
 
-            if (Mod.Setting is not Setting setting)
+            Setting? setting = Mod.Setting;
+            if (setting == null)
             {
                 Enabled = false;
                 return;
@@ -90,11 +91,11 @@ namespace RiderControl
                 // Undo only for entities marked by this mod.
                 foreach ((RefRW<Resident> resident, Entity entity) in SystemAPI
                              .Query<RefRW<Resident>>()
-                             .WithAll<RiderControlForcedIgnoreTaxi>()
+                             .WithAll<IgnoreTaxiMark>()
                              .WithEntityAccess())
                 {
                     resident.ValueRW.m_Flags &= ~ResidentFlags.IgnoreTaxi;
-                    ecb.RemoveComponent<RiderControlForcedIgnoreTaxi>(entity);
+                    ecb.RemoveComponent<IgnoreTaxiMark>(entity);
                 }
 
                 // Keep status fresh-ish even when not blocking.
@@ -111,7 +112,7 @@ namespace RiderControl
             // 1) Force IgnoreTaxi for unmarked residents (optionally allow commuter/tourist households).
             foreach ((RefRW<Resident> resident, Entity entity) in SystemAPI
                          .Query<RefRW<Resident>>()
-                         .WithNone<RiderControlForcedIgnoreTaxi>()
+                         .WithNone<IgnoreTaxiMark>()
                          .WithEntityAccess())
             {
                 Entity citizenEntity = resident.ValueRO.m_Citizen;
@@ -122,32 +123,32 @@ namespace RiderControl
 
                     if (household != Entity.Null)
                     {
-                        // Toggle OFF => early bail (allow taxis). Toggle ON => assign IgnoreTaxi below.
+                        // Toggle OFF => early bail (allow taxis). Toggle ON => apply IgnoreTaxi below.
                         if (!setting.BlockCommuters && SystemAPI.HasComponent<CommuterHousehold>(household))
                         {
-                            skippedCommuters++; // Status counter
-                            continue;           // skip applying IgnoreTaxi
+                            skippedCommuters++;
+                            continue;
                         }
 
-                        // Toggle OFF => early bail (allow taxis). Toggle ON => assign IgnoreTaxi below.
+                        // Toggle OFF => early bail (allow taxis). Toggle ON => apply IgnoreTaxi below.
                         if (!setting.BlockTourists && SystemAPI.HasComponent<TouristHousehold>(household))
                         {
-                            skippedTourists++;  // Status counter
-                            continue;           // skip applying IgnoreTaxi
+                            skippedTourists++;
+                            continue;
                         }
                     }
                 }
-                // Add IgnoreTaxi to block taxi use.
+
                 resident.ValueRW.m_Flags |= ResidentFlags.IgnoreTaxi;
-                ecb.AddComponent<RiderControlForcedIgnoreTaxi>(entity); // custom marker for undo/re-apply
-                appliedIgnoreTaxi++;    // Status counter
+                ecb.AddComponent<IgnoreTaxiMark>(entity);
+                appliedIgnoreTaxi++;
             }
 
             // 1b) Re-apply IgnoreTaxi for already-marked residents.
-            // Some vanilla systems can clear IgnoreTaxi; this reapplies/sticks.
+            // Some vanilla systems can clear IgnoreTaxi; this makes it stick.
             foreach (RefRW<Resident> resident in SystemAPI
                          .Query<RefRW<Resident>>()
-                         .WithAll<RiderControlForcedIgnoreTaxi>())
+                         .WithAll<IgnoreTaxiMark>())
             {
                 if ((resident.ValueRO.m_Flags & ResidentFlags.IgnoreTaxi) == 0)
                 {
@@ -156,7 +157,7 @@ namespace RiderControl
             }
 
             // 2) Unstick taxi-lane waiting (RideNeeder path).
-            // No structural changes; just flags/state updates.
+            // (No structural changes here; just flags/state updates.)
             foreach ((RefRW<HumanCurrentLane> lane, RefRW<PathOwner> pathOwner) in SystemAPI
                          .Query<RefRW<HumanCurrentLane>, RefRW<PathOwner>>())
             {
@@ -252,6 +253,18 @@ namespace RiderControl
                 {
                     if (reqRef.ValueRO.m_Type == TaxiRequestType.Stand)
                         continue;
+
+                    // Extra safety: if the seeker has RideNeeder and it points at this request, clear it.
+                    // (Entity.Null is a valid ECS sentinel, not a C# null.)
+                    Entity seeker = reqRef.ValueRO.m_Seeker;
+                    if (seeker != Entity.Null && SystemAPI.HasComponent<RideNeeder>(seeker))
+                    {
+                        RefRW<RideNeeder> rn = SystemAPI.GetComponentRW<RideNeeder>(seeker);
+                        if (rn.ValueRO.m_RideRequest == reqEntity)
+                        {
+                            rn.ValueRW.m_RideRequest = Entity.Null;
+                        }
+                    }
 
                     // Cancel Customer / Outside / None
                     taxiRequests.Add(reqEntity);

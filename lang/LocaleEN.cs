@@ -35,7 +35,7 @@ namespace RiderControl
                 { m_Setting.GetOptionTabLocaleID(Setting.AboutTab),   "About" },
  
                 // Groups
-                { m_Setting.GetOptionGroupLocaleID(Setting.BehaviorGroup), "Taxi Usage" },
+                { m_Setting.GetOptionGroupLocaleID(Setting.BehaviorGroup), "Druthers" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.DebugGroup),    "Debug / Logging" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.CityScanGroup), "CITY SCAN (updates ~every 60s)" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.TaxiScanGroup), "TAXI SCAN" },
@@ -44,37 +44,37 @@ namespace RiderControl
                 { m_Setting.GetOptionGroupLocaleID(Setting.AboutLinksGroup), "Support Links" },
  
                 // Druthers
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiUsage)), "Citizens - no taxi" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiUsage)),
-                    "Prevents cims from choosing taxis.\n" +
-                    "Also clears any cims currently waiting for a taxi so they re-route using other modes." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiUsage)), "Citizens: block taxi use" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiUsage)), "Prevents cims from choosing taxis.\n" +
+                "Also clears any cims currently waiting for a taxi so they re-route using other modes." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiStandDemand)), "Taxi stands: block stand demand" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiStandDemand)),
-                    "Safer stand handling: clears TaxiStand \"Passengers waiting\"" +
+                    "Safer stand handling: clears TaxiStand **Passengers waiting**\n" +
                     "so TaxiStandSystem stops requesting taxis.\n" +
-                "Hidden unless \"Cims Block taxi use\" is ON." },
+                    "Hidden unless [Citizens: block taxi use] is enabled [x]" },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockCommuters)), "Commuters - no taxi" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockCommuters)), "When enabled, commuters are also prevented from using taxis." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockCommuters)), "Commuters: block taxi use" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockCommuters)), "When enabled, commuters are prevented from using taxis." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTourists)), "Tourists - no taxi" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTourists)), "When enabled, tourists are also prevented from using taxis." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTourists)), "Tourists: block taxi use" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTourists)),
+                    "When enabled, tourists are prevented from using taxis." },
  
                 // Debug
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.EnableDebugLogging)), "Enable verbose taxi logging" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.EnableDebugLogging)), "When enabled, logs a periodic TaxiSummary line to help diagnose remaining taxi activity.\nDisable for normal gameplay." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.EnableDebugLogging)), "When enabled, logs a periodic TaxiSummary line to help diagnose remaining taxi activity.\n" +
+                "Disable for normal gameplay or it will decrease performance." },
  
                 // Status labels
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers1)), "Passengers (per month)" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyPassengers1)), "Matches InfoView passenger table (tourists/citizens per month)." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers1)), "Passengers/month" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyPassengers1)), "Transportation InfoView passenger table (tourists/citizens per month)." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers2)), "Passengers (per month) (2)" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyPassengers2)), "More InfoView passenger rows + Total." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers2)), "Passengers/month (2)" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyPassengers2)), "More Transportation InfoView passenger rows + Total." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusTaxiSupply)), "Taxi supply" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusTaxiSupply)),
-                    "Counts of TAXI: depots, dispatch centers, and stands in the city." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusTaxiSupply)), "Counts of taxis, taxi depots, dispatch centers, and taxi stands currently in the city." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusSnapshotMeta)), "Snapshot" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusSnapshotMeta)), "How fresh the status is." },
@@ -91,22 +91,18 @@ namespace RiderControl
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusPassengers)), "Passengers" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusPassengers)), "Taxi passenger sanity check." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusWaiting)), "Waiting" },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusWaiting)), "Number Waiting" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusWaiting)), "WaitingTransport total and TaxiStand passengers waiting." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusCoverage)), "Coverage" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusCoverage)), "IgnoreTaxi coverage and household classification counts." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusWorkDone1)), "Work done" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusWorkDone1)), "What the system changed in the most recent simulation update." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusWorkDone1)), "What the system changed in the most recent sim update." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusWorkDone2)), "Work done (2)" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusWorkDone2)), "More work counters from the most recent simulation update." },
-
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusTaxiStands)), "Taxi stands" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusTaxiStands)), "Taxi stand count and stand passenger/request snapshot." },
-
-
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusWorkDone2)), "More work counters from the most recent sim update." },
+ 
                 // About
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.NameDisplay)), "Mod" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.NameDisplay)), "Display name of this mod." },

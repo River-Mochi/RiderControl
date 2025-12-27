@@ -3,18 +3,18 @@
 
 namespace RiderControl
 {
-    using Game.Citizens;
-    using Game.Common;
-    using Game.Creatures;
-    using Game.Events;
-    using Game.Prefabs;
-    using Game.Routes;
-    using Game.Simulation;
-    using Game.Tools;
-    using Game.Vehicles;
-    using Unity.Entities;
-    using BuildingTransportDepot = Game.Buildings.TransportDepot;
-    using CreatureResident = Game.Creatures.Resident;
+    using Game.Citizens;    // HouseholdMember
+    using Game.Common;      // Deleted
+    using Game.Creatures;   // Resident, Passenger
+    using Game.Events;      // Involved Accident
+    using Game.Prefabs;     // PrefabSystem
+    using Game.Routes;      // TaxiStand, WaitingPassengers
+    using Game.Simulation;  // TaxiRequest, RideNeeder
+    using Game.Tools;       // Temp
+    using Game.Vehicles;    // Taxi, TaxiFlags
+    using Unity.Entities;   // SystemAPI
+    using BuildingTransportDepot = Game.Buildings.TransportDepot;   // Alias
+    using CreatureResident = Game.Creatures.Resident;               // Alias
 
     public partial class RiderControlSystem
     {
@@ -27,9 +27,9 @@ namespace RiderControl
         private EntityQuery m_TransportConfigQuery;
         private UITransportConfigurationPrefab? m_TransportConfig;
 
-        // -----------------------------------
+        // -------------------------
         // STATUS FIELDS (read by Setting.cs)
-        // -----------------------------------
+        // -------------------------
 
         internal static int s_StatusSnapshotCount;
         internal static float s_StatusSecondsSinceSnapshot;
@@ -93,12 +93,11 @@ namespace RiderControl
         internal static int s_StatusPassengerHasResident;
         internal static int s_StatusPassengerIgnoreTaxi;
 
+        internal static int s_StatusTaxiStandsTotal;
         internal static int s_StatusTaxiDepotsTotal;
         internal static int s_StatusTaxiDepotsWithDispatchCenter;
-        internal static int s_StatusTaxiStandsTotal;
 
-
-        // “Last update” activity counts (written by OnUpdate in RiderControlSystem.Core.cs)
+        // “Last update” activity counts (written by OnUpdate in RiderControlSystem.cs)
         internal static int s_StatusLastAppliedIgnoreTaxi;
         internal static int s_StatusLastSkippedCommuters;
         internal static int s_StatusLastSkippedTourists;
@@ -139,6 +138,8 @@ namespace RiderControl
             s_InfoTotalCitizen = 0;
 
             s_StatusTaxiStandsTotal = 0;
+            s_StatusTaxiDepotsTotal = 0;
+            s_StatusTaxiDepotsWithDispatchCenter = 0;
 
             // Cache the same transport config prefab used by TransportInfoviewUISystem (best-effort).
             // If this fails (e.g. during partial loads), StatusInfoViewMonthly will remain 0s.
@@ -233,7 +234,7 @@ namespace RiderControl
                 if (ignoreTaxi)
                     s_StatusResidentsIgnoreTaxi++;
 
-                if (SystemAPI.HasComponent<RiderControlForcedIgnoreTaxi>(e))
+                if (SystemAPI.HasComponent<IgnoreTaxiMark>(e))  // In-game entity shows as RiderControl.IgnoreTaxiMark
                     s_StatusResidentsForcedMarker++;
 
                 Entity citizenEntity = residentRef.ValueRO.m_Citizen;
@@ -502,7 +503,10 @@ namespace RiderControl
             s_StatusTaxiDepotsWithDispatchCenter = 0;
 
             // Taxi stands (includes built-in station taxi stops)
-            foreach ((RefRO<TaxiStand> _, Entity e) in SystemAPI.Query<RefRO<TaxiStand>>().WithEntityAccess().WithNone<Deleted, Temp>())
+            foreach ((RefRO<TaxiStand> _, Entity e) in SystemAPI
+                .Query<RefRO<TaxiStand>>()
+                .WithEntityAccess()
+                .WithNone<Deleted, Temp>())
             {
                 if (EntityManager.Exists(e))
                 {

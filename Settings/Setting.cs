@@ -98,30 +98,25 @@ namespace RiderControl
 
         [SettingsUISection(StatusTab, CityScanGroup)]
         public string StatusMonthlyPassengers2 =>
-            $"{RiderControlSystem.s_InfoTrainTourist:N0}T/{RiderControlSystem.s_InfoTrainCitizen:N0}C Train |  {RiderControlSystem.s_InfoShipTourist:N0}T/{RiderControlSystem.s_InfoShipCitizen:N0}C Ship |  {RiderControlSystem.s_InfoFerryTourist:N0}T/{RiderControlSystem.s_InfoFerryCitizen:N0}C Ferry | {RiderControlSystem.s_InfoAirTourist:N0}T/{RiderControlSystem.s_InfoAirCitizen:N0}C Air | {RiderControlSystem.s_InfoTotalTourist:N0}T/{RiderControlSystem.s_InfoTotalCitizen:N0}C  Totals";
+            $"Train {RiderControlSystem.s_InfoTrainTourist:N0}T/{RiderControlSystem.s_InfoTrainCitizen:N0}C | Ship {RiderControlSystem.s_InfoShipTourist:N0}T/{RiderControlSystem.s_InfoShipCitizen:N0}C | Ferry {RiderControlSystem.s_InfoFerryTourist:N0}T/{RiderControlSystem.s_InfoFerryCitizen:N0}C | Air {RiderControlSystem.s_InfoAirTourist:N0}T/{RiderControlSystem.s_InfoAirCitizen:N0}C | Total {RiderControlSystem.s_InfoTotalTourist:N0}T/{RiderControlSystem.s_InfoTotalCitizen:N0}C";
 
         [SettingsUISection(StatusTab, CityScanGroup)]
         public string StatusWaiting =>
-            $"{RiderControlSystem.s_StatusWaitingTransportTotal:N0} WaitingTransport | " +
-            " {RiderControlSystem.s_StatusWaitingTaxiStandTotal:N0} TaxiStandPassengers";
+            $"WaitingTransport {RiderControlSystem.s_StatusWaitingTransportTotal:N0} | TaxiStandPassengers {RiderControlSystem.s_StatusWaitingTaxiStandTotal:N0}";
 
         [SettingsUISection(StatusTab, CityScanGroup)]
         public string StatusTaxiSupply =>
-            $"{RiderControlSystem.s_StatusTaxisTotal:N0} Taxis | " +
-            $"{RiderControlSystem.s_StatusTaxiDepotsTotal:N0} Depots | " +
-            $"{RiderControlSystem.s_StatusTaxiDepotsWithDispatchCenter:N0} Dispatch Centers | " +
-            $"{RiderControlSystem.s_StatusTaxiStandsTotal:N0} Stands";
+            $"Taxis {RiderControlSystem.s_StatusTaxisTotal:N0} | Depots {RiderControlSystem.s_StatusTaxiDepotsTotal:N0} | DispatchCenters {RiderControlSystem.s_StatusTaxiDepotsWithDispatchCenter:N0} | Stands {RiderControlSystem.s_StatusTaxiStandsTotal:N0}";
 
         // TAXI SCAN
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
         public string StatusRequests =>
-            $"{RiderControlSystem.s_StatusReqCustomer:N0} Customer | {RiderControlSystem.s_StatusReqOutside:N0} Outside | {RiderControlSystem.s_StatusReqNone:N0} None | {RiderControlSystem.s_StatusReqStand:N0} Stand";
+            $"Customer {RiderControlSystem.s_StatusReqCustomer:N0} | Outside {RiderControlSystem.s_StatusReqOutside:N0} | None {RiderControlSystem.s_StatusReqNone:N0} | Stand {RiderControlSystem.s_StatusReqStand:N0}";
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
         public string StatusPassengers =>
-            $"{RiderControlSystem.s_StatusPassengerTotal:N0} Passengers | " +
-            $"{RiderControlSystem.s_StatusPassengerIgnoreTaxi:N0}/{RiderControlSystem.s_StatusPassengerHasResident:N0} ResidentIgnoreTaxi";
+            $"Passengers {RiderControlSystem.s_StatusPassengerTotal:N0} | ResidentIgnoreTaxi {RiderControlSystem.s_StatusPassengerIgnoreTaxi:N0}/{RiderControlSystem.s_StatusPassengerHasResident:N0}";
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
         public string StatusTaxiFleet =>
@@ -148,7 +143,7 @@ namespace RiderControl
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
         public string StatusWorkDone2 =>
-            $"{RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} TaxiStandCleared |  {RiderControlSystem.s_StatusLastSkippedCommuters:N0} CommutersAllowedTaxis |  {RiderControlSystem.s_StatusLastSkippedTourists:N0} TouristsAllowedTaxis";
+            $"TaxiStandCleared {RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} | CommutersSkipped {RiderControlSystem.s_StatusLastSkippedCommuters:N0} | TouristsSkipped {RiderControlSystem.s_StatusLastSkippedTourists:N0}";
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
         public string StatusSnapshotMeta =>

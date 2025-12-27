@@ -1,5 +1,5 @@
 // Systems/RiderControlSystem.Debug.cs
-// Optional debug logging helpers (controlled by settings + log effectiveness level).
+// Optional debug logging helpers (controlled by settings).
 
 namespace RiderControl
 {
@@ -50,15 +50,15 @@ namespace RiderControl
             // Reuse snapshot numbers to keep debug logging cheap.
             Mod.s_Log.Info(
                 $"{Mod.ModTag} TaxiSummary: " +
-                $"{s_StatusTaxisTotal} taxis, {s_StatusTaxiTransporting} Transporting, {s_StatusTaxiBoarding} Boarding {s_StatusTaxiReturning} Returning, {s_StatusTaxiDispatched} Dispatched, {s_StatusTaxiEnRoute} ENROUTE, {s_StatusTaxiParked} Parked, {s_StatusTaxiAccident} Accident, " +
+                $"taxis={s_StatusTaxisTotal}, transporting={s_StatusTaxiTransporting}, boarding={s_StatusTaxiBoarding}, returning={s_StatusTaxiReturning}, dispatched={s_StatusTaxiDispatched}, enRoute={s_StatusTaxiEnRoute}, parked={s_StatusTaxiParked}, accident={s_StatusTaxiAccident}, " +
                 $"fromOutside={s_StatusTaxiFromOutside}, disabled={s_StatusTaxiDisabled}, withServiceDispatch={s_StatusTaxiWithDispatchBuffer}, " +
                 $"requests[stand={s_StatusReqStand}, customer={s_StatusReqCustomer}, outside={s_StatusReqOutside}, none={s_StatusReqNone}], " +
                 $"custSeekers(ignoreTaxi={s_StatusReqCustomerSeekerIgnoreTaxi}/{s_StatusReqCustomerSeekerHasResident}), " +
                 $"outSeekers(ignoreTaxi={s_StatusReqOutsideSeekerIgnoreTaxi}/{s_StatusReqOutsideSeekerHasResident}), " +
                 $"passengers(ignoreTaxi={s_StatusPassengerIgnoreTaxi}/{s_StatusPassengerHasResident}, totalPassengers={s_StatusPassengerTotal}), " +
                 $"residents(ignoreTaxi={s_StatusResidentsIgnoreTaxi}/{s_StatusResidentsTotal}, forcedMarker={s_StatusResidentsForcedMarker}), " +
-                $"commuters(ignoreTaxi={s_StatusCommutersIgnoreTaxi}/{s_StatusCommutersTotal}, blockCommutersToo={setting.BlockCommuters}), " +
-                $"tourists(ignoreTaxi={s_StatusTouristsIgnoreTaxi}/{s_StatusTouristsTotal}, blockTouristsToo={setting.BlockTourists}), " +
+                $"commuters(ignoreTaxi={s_StatusCommutersIgnoreTaxi}/{s_StatusCommutersTotal}, blockCommuters={setting.BlockCommuters}), " +
+                $"tourists(ignoreTaxi={s_StatusTouristsIgnoreTaxi}/{s_StatusTouristsTotal}, blockTourists={setting.BlockTourists}), " +
                 $"waitingTransport(total={s_StatusWaitingTransportTotal}, taxiStand={s_StatusWaitingTaxiStandTotal}), " +
                 $"statsDailyTaxi(citizen={dailyTaxiCitizen}, tourist={dailyTaxiTourist}, approxPerMonth={30 * (dailyTaxiCitizen + dailyTaxiTourist)}), " +
                 $"clearedTaxiStandPassengers={clearedTaxiStandWaitingPassengers}, " +
@@ -101,7 +101,7 @@ namespace RiderControl
 
                 ResidentFlags rf = resident.ValueRO.m_Flags;
                 bool ignoreTaxi = (rf & ResidentFlags.IgnoreTaxi) != 0;
-                bool forced = SystemAPI.HasComponent<RiderControlForcedIgnoreTaxi>(passengerEntity);
+                bool forced = SystemAPI.HasComponent<IgnoreTaxiMark>(passengerEntity);
 
                 // Citizen flags + household classification
                 Entity citizenEntity = resident.ValueRO.m_Citizen;
