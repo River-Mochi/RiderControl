@@ -148,7 +148,7 @@ namespace RiderControl
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
         public string StatusWorkDone2 =>
-            $"{RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} TaxiStandCleared |  {RiderControlSystem.s_StatusLastSkippedCommuters:N0} CommutersSkipped |  {RiderControlSystem.s_StatusLastSkippedTourists:N0} TouristsSkipped";
+            $"{RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} TaxiStandCleared |  {RiderControlSystem.s_StatusLastSkippedCommuters:N0} CommutersAllowedTaxis |  {RiderControlSystem.s_StatusLastSkippedTourists:N0} TouristsAllowedTaxis";
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
         public string StatusSnapshotMeta =>
