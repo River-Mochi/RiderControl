@@ -104,6 +104,11 @@ dotnet_naming_rule.private_internal_const_fields_k_prefix.severity = suggestion
 dotnet_diagnostic.CA1822.severity = none
 [*.cs]
 #### Naming styles ####
+# Control spacing after keywords, but no direct support for right alignment
+csharp_space_after_keywords_in_control_flow_statements = true
+
+# Formatting for assignment spacing (though it won't fully align equals)
+csharp_space_around_assignment_operators = true
 
 # Naming rules
 
@@ -280,3 +285,7 @@ dotnet_style_prefer_simplified_boolean_expressions = true:suggestion
 dotnet_style_prefer_conditional_expression_over_assignment = true:silent
 dotnet_style_prefer_conditional_expression_over_return = true:silent
 dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
+dotnet_style_prefer_compound_assignment = true:suggestion
+dotnet_style_prefer_simplified_interpolation = true:suggestion

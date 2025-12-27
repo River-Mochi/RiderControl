@@ -8,32 +8,52 @@
 	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
 	<!--LongDescription Value="This is a long description" /-->
 	<LongDescription>
-This is a long description
-Things this mod does. is it safe to remove for the city save?
+### Smart Traveler
+Helps reduce Taxi traffic by blocking taxi usage on the *rider (demand)* side.
+ 
+### What it does
+- ✅ Prevents cims from choosing taxis by applying `IgnoreTaxi`
+- ✅ Un-sticks any cims already waiting for a taxi (taxi-lane + taxi-stand cases) so they re-route normally
+- ✅ Cancels dispatchable taxi requests so taxi dispatch/spawn activity drops over time
+- ✅ Optional: include/exclude **Commuters** and **Tourists**
+ 
+### What to expect
+- Fewer taxi trips after a short settling period.
+- Existing taxis may still be visible briefly (finishing previous behavior), then traffic should decline.
+ 
+### Safety / compatibility
+- Safe to remove anytime; works with new and existing cities.
+- Can be enabled/disabled in-game (turn off checkboxes [ ] to stop applying changes).
+- No Harmony or reflection-based patching; less likely to break on game patch day.
+ 
+Tip: If you want to verify it’s working, enable “verbose taxi logging” temporarily and check the Status section in Options.
 
-	</LongDescription>
-	<!--Thumbnail-->
-	<Thumbnail Value="Properties/Thumbnail.png" />
+### Credits
+- RiverMochi: mod author
+
+</LongDescription>
+<!--Thumbnail-->
+<Thumbnail Value="Properties/Thumbnail.png" />
 	<!--Screenshot, can be set multiple times-->
-	<Screenshot Value="" />
+<Screenshot Value="" />
 	<!--Tag, can be set multiple times-->
-	<Tag Value="" />
+<Tag Value="" />
 	<!--Link to the forum post where the mod can be discussed-->
-	<ForumLink Value="" />
+<ForumLink Value="" />
 	<!--Version of the mod-->
-	<ModVersion Value="0.5.0" />
-	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.5.*" />
+<ModVersion Value="0.5.0" />
+<!--Recommended version of the base game to use the mod-->
+<GameVersion Value="1.5.*" />
 	<!--Dependency for the mod, can be set multiple times-->
 	<Dependency Id="" />
-	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
+<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
 	<RequiredDLC Value="" />
-	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="" />
-	<!--<ChangeLog>
+<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
+<ChangeLog Value="" />
+<!--<ChangeLog>
 	</ChangeLog>-->
-	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
+<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
 	<ExternalLink Type="" Url="" />
 	<!--Supported values Public, Private, Unlisted-->
-	<AccessLevel Value="Public" />
+<AccessLevel Value="Public" />
 </Publish>
