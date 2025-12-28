@@ -53,20 +53,20 @@ namespace RiderControl
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockCommuters)), "Commuters: block taxi use" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockCommuters)),
                     "**Enabled [ ✓ ]** means **Commuters** ignore taxis.\n" +
-                    "Hidden and disabled unless **Citizens: block taxi use** is Enabled **[ ✓ ]**\n" +
+                    "Hidden and <disabled> unless [Citizens: block taxi use] is Enabled [ ✓ ]\n" +
                     "Even if you left Commuters checked, it will be OFF when Citizens is OFF." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTourists)), "Tourists: block taxi use" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTourists)),
-                    "When enabled, tourists are prevented from using taxis.\n" +
-                    "Hidden and disabled unless **Citizens: block taxi use** is Enabled **[ ✓ ]**\n" +
+                    "**Enabled [ ✓ ]** means **Tourists** ignore taxis.\n" +
+                    "Hidden and <disabled> unless [Citizens: block taxi use] is Enabled [ ✓ ]\n" +
                      "Even if you left Tourists checked, it will be OFF when Citizens is OFF." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiStandDemand)), "Taxi stands: block demand (alpha)" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiStandDemand)),
-                    "This toggle is new Apha phase:\n" +
+                    "This toggle is new (Alpha):\n" +
                     "Clears TaxiStand **Passengers waiting** so the stand stops requesting stand-by taxis.\n" +
-                    "Hidden and disabled unless **Citizens: block taxi use** is enabled [ ✓ ]\n" +
+                    "Hidden and disabled unless [Citizens: block taxi use] is enabled [ ✓ ]\n" +
                     "Even if you left taxi stands checked, it will be OFF when Citizens is OFF." },
  
                 // Debug
