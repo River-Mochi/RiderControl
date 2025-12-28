@@ -1,7 +1,8 @@
 ﻿## Smart Traveler (CS2) — stop cims calling taxis
  
-**Smart Traveler** is a Cities: Skylines II mod that blocks taxis on the *rider (demand)* side.  
-When enabled, cims will choose other travel options (walk, bike, private car, public transport, etc.) instead of taking taxis.
+**Smart Traveler** is a Cities: Skylines II game mod that blocks taxis on the *rider (demand)* side.  
+When enabled, cims will choose other travel options (walk, bike, private car, public transport if it exists) instead of taking taxis.
+This helps reduce city taxi traffic as taxis can only carry 1-4 passengers and can overwhelm city roads.
  
 ### What this mod does
  
@@ -39,3 +40,4 @@ When enabled:
   - Enable **Cims Block taxi use** (default: ON)
   - Optional: include/exclude **Commuters** and **Tourists**
 - Let the simulation run for a few minutes to see taxi traffic decline.
+- Taxi Stand - block them from requesting taxis drive to stands and park there. This is a minor bonus feature if it can be made to work.
