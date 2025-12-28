@@ -45,21 +45,29 @@ namespace RiderControl
  
                 // Druthers
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiUsage)), "Citizens: block taxi use" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiUsage)), "Prevents cims from choosing taxis.\n" +
-                "Also clears any cims currently waiting for a taxi so they re-route using other modes." },
-
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiStandDemand)), "Taxi stands: block stand demand" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiStandDemand)),
-                    "Safer stand handling: clears TaxiStand **Passengers waiting**\n" +
-                    "so TaxiStandSystem stops requesting taxis.\n" +
-                    "Hidden unless [Citizens: block taxi use] is enabled [x]" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiUsage)),
+                    "Prevents cims from choosing taxis.\n" +
+                    "Also clears any cims currently waiting for a taxi so they re-route using other modes.\n" +
+                    "Disabled = vanilla taxi use." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockCommuters)), "Commuters: block taxi use" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockCommuters)), "When enabled, commuters are prevented from using taxis." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockCommuters)),
+                    "**Enabled [ ✓ ]** means **Commuters** ignore taxis.\n" +
+                    "Hidden and disabled unless **Citizens: block taxi use** is Enabled **[ ✓ ]**\n" +
+                    "Even if you left Commuters checked, it will be OFF when Citizens is OFF." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTourists)), "Tourists: block taxi use" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTourists)),
-                    "When enabled, tourists are prevented from using taxis." },
+                    "When enabled, tourists are prevented from using taxis.\n" +
+                    "Hidden and disabled unless **Citizens: block taxi use** is Enabled **[ ✓ ]**\n" +
+                     "Even if you left Tourists checked, it will be OFF when Citizens is OFF." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiStandDemand)), "Taxi stands: block demand (alpha)" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiStandDemand)),
+                    "This toggle is new Apha phase:\n" +
+                    "Clears TaxiStand **Passengers waiting** so the stand stops requesting stand-by taxis.\n" +
+                    "Hidden and disabled unless **Citizens: block taxi use** is enabled [ ✓ ]\n" +
+                    "Even if you left taxi stands checked, it will be OFF when Citizens is OFF." },
  
                 // Debug
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.EnableDebugLogging)), "Enable verbose taxi logging" },

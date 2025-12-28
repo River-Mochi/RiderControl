@@ -4,11 +4,11 @@
 
 namespace RiderControl
 {
-    using System;                       // Exception
-    using Colossal.IO.AssetDatabase;    // FileLocation
-    using Game.Modding;                 // ModSetting
-    using Game.Settings;                // SettingsUI
-    using UnityEngine;                  // Application.OpenURL 
+    using System;
+    using Colossal.IO.AssetDatabase;
+    using Game.Modding;
+    using Game.Settings;
+    using UnityEngine;
 
     [FileLocation("ModsSettings/SmartTraveler/SmartTraveler")]
     [SettingsUIGroupOrder(
@@ -48,6 +48,8 @@ namespace RiderControl
 
         private const string UrlDiscord = "https://discord.gg/HTav7ARPs2";
 
+        private bool m_BlockTaxiUsage = true;
+
         public Setting(IMod mod) : base(mod)
         {
             SetDefaults();
@@ -58,26 +60,39 @@ namespace RiderControl
         [SettingsUISection(ActionsTab, BehaviorGroup)]
         public bool BlockTaxiUsage
         {
-            get; set;
+            get => m_BlockTaxiUsage;
+            set
+            {
+                m_BlockTaxiUsage = value;
+
+                // If the parent toggle is turned OFF, disable the dependent toggles too.
+                if (!m_BlockTaxiUsage)
+                {
+                    BlockTaxiStandDemand = false;
+                    BlockCommuters = false;
+                    BlockTourists = false;
+                }
+            }
         }
 
-        // Phase B (optional): disables TaxiStand-driven taxi demand by clearing TaxiStand WaitingPassengers.
-        // This is only meaningful when BlockTaxiUsage is enabled, so hide it otherwise.
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsTaxiBlockingOff))]
-        [SettingsUISection(ActionsTab, BehaviorGroup)]
-        public bool BlockTaxiStandDemand
-        {
-            get; set;
-        }
-
         [SettingsUISection(ActionsTab, BehaviorGroup)]
         public bool BlockCommuters
         {
             get; set;
         }
 
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsTaxiBlockingOff))]
         [SettingsUISection(ActionsTab, BehaviorGroup)]
         public bool BlockTourists
+        {
+            get; set;
+        }
+
+        // Alpha phase: disables TaxiStand-driven taxi demand by clearing TaxiStand WaitingPassengers.
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsTaxiBlockingOff))]
+        [SettingsUISection(ActionsTab, BehaviorGroup)]
+        public bool BlockTaxiStandDemand
         {
             get; set;
         }
@@ -136,7 +151,6 @@ namespace RiderControl
         public string StatusCoverage =>
             $"Residents {RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusResidentsTotal:N0} | Marked {RiderControlSystem.s_StatusResidentsForcedMarker:N0} | Commuters {RiderControlSystem.s_StatusCommutersIgnoreTaxi:N0}/{RiderControlSystem.s_StatusCommutersTotal:N0} | Tourists {RiderControlSystem.s_StatusTouristsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusTouristsTotal:N0}";
 
-        // Split into 2 rows so it fits nicely
         [SettingsUISection(StatusTab, LastUpdateGroup)]
         public string StatusWorkDone1 =>
             $"IgnoreTaxiApplied {RiderControlSystem.s_StatusLastAppliedIgnoreTaxi:N0} | RideNeederRemoved {RiderControlSystem.s_StatusLastRemovedRideNeeder:N0} | TaxiLaneCleared {RiderControlSystem.s_StatusLastClearedTaxiLaneWaiting:N0}";
@@ -194,9 +208,9 @@ namespace RiderControl
         public override void SetDefaults()
         {
             BlockTaxiUsage = true;
-            BlockTaxiStandDemand = true;
             BlockCommuters = true;
             BlockTourists = true;
+            BlockTaxiStandDemand = true;
             EnableDebugLogging = false;
         }
 
