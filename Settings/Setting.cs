@@ -4,10 +4,10 @@
 
 namespace RiderControl
 {
-    using System;
     using Colossal.IO.AssetDatabase;
     using Game.Modding;
     using Game.Settings;
+    using System;
     using UnityEngine;
 
     [FileLocation("ModsSettings/SmartTraveler/SmartTraveler")]

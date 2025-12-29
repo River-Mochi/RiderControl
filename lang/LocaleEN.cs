@@ -3,8 +3,8 @@
 
 namespace RiderControl
 {
-    using System.Collections.Generic;
     using Colossal;
+    using System.Collections.Generic;
 
     public sealed class LocaleEN : IDictionarySource
     {
@@ -44,19 +44,19 @@ namespace RiderControl
                 { m_Setting.GetOptionGroupLocaleID(Setting.AboutLinksGroup), "Support Links" },
  
                 // Druthers
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiUsage)), "Citizens: block taxi use" },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTaxiUsage)), "Citizens: ignore taxis" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTaxiUsage)),
                     "Prevents cims from choosing taxis.\n" +
                     "Also clears any cims currently waiting for a taxi so they re-route using other modes.\n" +
                     "Disabled = vanilla taxi use." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockCommuters)), "Commuters: block taxi use" },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockCommuters)), "Commuters: ignore taxis" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockCommuters)),
                     "**Enabled [ ✓ ]** means **Commuters** ignore taxis.\n" +
                     "Hidden and <disabled> unless [Citizens: block taxi use] is Enabled [ ✓ ]\n" +
                     "Even if you left Commuters checked, it will be OFF when Citizens is OFF." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTourists)), "Tourists: block taxi use" },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.BlockTourists)), "Tourists: ignore taxis" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.BlockTourists)),
                     "**Enabled [ ✓ ]** means **Tourists** ignore taxis.\n" +
                     "Hidden and <disabled> unless [Citizens: block taxi use] is Enabled [ ✓ ]\n" +

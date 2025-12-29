@@ -3,8 +3,6 @@
 
 namespace RiderControl
 {
-    using System.IO;
-    using System.Reflection;
     using Colossal.IO.AssetDatabase;
     using Colossal.Localization;
     using Colossal.Logging;
@@ -12,6 +10,8 @@ namespace RiderControl
     using Game.Modding;
     using Game.SceneFlow;
     using Game.Simulation;
+    using System.IO;
+    using System.Reflection;
 
     public sealed class Mod : IMod
     {
