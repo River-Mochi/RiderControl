@@ -109,7 +109,7 @@ namespace RiderControl
 
         [SettingsUISection(StatusTab, CityScanGroup)]
         public string StatusMonthlyPassengers1 =>
-            $"Taxi {RiderControlSystem.s_InfoTaxiTourist:N0}T/{RiderControlSystem.s_InfoTaxiCitizen:N0}C | Bus {RiderControlSystem.s_InfoBusTourist:N0}T/{RiderControlSystem.s_InfoBusCitizen:N0}C | Tram {RiderControlSystem.s_InfoTramTourist:N0}T/{RiderControlSystem.s_InfoTramCitizen:N0}C | Subway {RiderControlSystem.s_InfoSubwayTourist:N0}T/{RiderControlSystem.s_InfoSubwayCitizen:N0}C";
+            $"Taxi {RiderControlSystem.s_InfoTaxiTourist:N0}-T/{RiderControlSystem.s_InfoTaxiCitizen:N0}-C | Bus {RiderControlSystem.s_InfoBusTourist:N0}-T/{RiderControlSystem.s_InfoBusCitizen:N0}-C | Tram {RiderControlSystem.s_InfoTramTourist:N0}-T/{RiderControlSystem.s_InfoTramCitizen:N0}-C | Subway {RiderControlSystem.s_InfoSubwayTourist:N0}-T/{RiderControlSystem.s_InfoSubwayCitizen:N0}-C";
 
         [SettingsUISection(StatusTab, CityScanGroup)]
         public string StatusMonthlyPassengers2 =>
@@ -135,7 +135,7 @@ namespace RiderControl
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
         public string StatusTaxiFleet =>
-            $"Transporting {RiderControlSystem.s_StatusTaxiTransporting:N0} | Boarding {RiderControlSystem.s_StatusTaxiBoarding:N0} | Returning {RiderControlSystem.s_StatusTaxiReturning:N0} | Dispatched {RiderControlSystem.s_StatusTaxiDispatched:N0} | EnRoute {RiderControlSystem.s_StatusTaxiEnRoute:N0} | Parked {RiderControlSystem.s_StatusTaxiParked:N0} | Accident {RiderControlSystem.s_StatusTaxiAccident:N0}";
+            $"Transport {RiderControlSystem.s_StatusTaxiTransporting:N0} | Boarding {RiderControlSystem.s_StatusTaxiBoarding:N0} | Returning {RiderControlSystem.s_StatusTaxiReturning:N0} | Dispatched {RiderControlSystem.s_StatusTaxiDispatched:N0} | EnRoute {RiderControlSystem.s_StatusTaxiEnRoute:N0} | Parked {RiderControlSystem.s_StatusTaxiParked:N0} | Accident {RiderControlSystem.s_StatusTaxiAccident:N0}";
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
         public string StatusTaxiFlags =>

@@ -61,8 +61,9 @@ namespace RiderControl
 
         protected override void OnUpdate()
         {
-            Setting? setting = Mod.Setting;
-            if (setting == null)
+
+            var setting = Mod.Setting;
+            if (setting is null)
             {
                 Enabled = false;
                 return;
