@@ -1,38 +1,48 @@
-// Systems/RiderControlSystem.Status.cs
+// File: Systems/RiderControlSystem.Status.cs
 // Status snapshot + InfoView-matching passenger statistics.
 
 namespace RiderControl
 {
-    using Game.Citizens;    // HouseholdMember
-    using Game.Common;      // Deleted
-    using Game.Creatures;   // Resident, Passenger
-    using Game.Events;      // Involved Accident
-    using Game.Prefabs;     // PrefabSystem
-    using Game.Routes;      // TaxiStand, WaitingPassengers
-    using Game.Simulation;  // TaxiRequest, RideNeeder
-    using Game.Tools;       // Temp
-    using Game.Vehicles;    // Taxi, TaxiFlags
-    using Unity.Entities;   // SystemAPI
-    using BuildingTransportDepot = Game.Buildings.TransportDepot;   // Alias
-    using CreatureResident = Game.Creatures.Resident;               // Alias
+    using Game.Agents;              // MovingAway
+    using Game.Citizens;            // Household, HouseholdMember, Household tags
+    using Game.Common;              // Deleted
+    using Game.Creatures;           // Resident, Passenger, flags
+    using Game.Events;              // InvolvedInAccident
+    using Game.Prefabs;             // PrefabSystem
+    using Game.Routes;              // TaxiStand, WaitingPassengers
+    using Game.Simulation;          // TaxiRequest, RideNeeder
+    using Game.Tools;               // Temp
+    using Game.Vehicles;            // Taxi, TaxiFlags
+    using System;                   // DateTime, Math, MidpointRounding
+    using System.Globalization;     // CultureInfo
+    using Unity.Entities;           // SystemAPI
+    using BuildingTransportDepot = Game.Buildings.TransportDepot; // Alias
+    using CreatureResident = Game.Creatures.Resident;             // Alias
+    using UTime = UnityEngine.Time; // realtimeSinceStartupAsDouble
 
     public partial class RiderControlSystem
     {
-        // Status snapshot updated on a timer (cheap; heavy scans are throttled).
-        private const float kStatusIntervalSeconds = 60f;
+        // -------------------------
+        // TUNABLES
+        // -------------------------
 
-        private float m_StatusTimerSeconds;
-        private CityStatisticsSystem? m_CityStatisticsSystem;
-        private PrefabSystem? m_PrefabSystem;
-        private EntityQuery m_TransportConfigQuery;
-        private UITransportConfigurationPrefab? m_TransportConfig;
+        // Expensive scan runs only when requested.
+        // Auto refresh is throttled to avoid repeated scans during UI rebinding.
+        private const double kAutoRefreshMinSeconds = 240.0; // 4 minutes
+
+        // -------------------------
+        // REQUEST + TIMESTAMPS
+        // -------------------------
+
+        private static bool s_StatusRefreshRequested;
+        private static bool s_StatusForceRefresh;
+
+        internal static double s_StatusLastSnapshotRealtime;
+        internal static string s_StatusLastSnapshotClock = "n/a";
 
         // -------------------------
         // STATUS FIELDS (read by Setting.cs)
         // -------------------------
-
-        internal static int s_StatusSnapshotCount;
-        internal static float s_StatusSecondsSinceSnapshot;
 
         internal static int s_StatusResidentsTotal;
         internal static int s_StatusResidentsIgnoreTaxi;
@@ -46,6 +56,14 @@ namespace RiderControl
 
         internal static int s_StatusWaitingTransportTotal;
         internal static int s_StatusWaitingTaxiStandTotal;
+
+        internal static int s_StatusHouseholdsTotal;
+        internal static int s_StatusHouseholdsCommuter;
+        internal static int s_StatusHouseholdsTourist;
+        internal static int s_StatusHouseholdsHomeless;
+        internal static int s_StatusHouseholdsMovingAway;
+
+        internal static int s_StatusResidentsInMovingAwayHousehold;
 
         // Transportation InfoView passenger table (tourists/citizens per month)
         internal static int s_InfoTaxiTourist;
@@ -97,13 +115,26 @@ namespace RiderControl
         internal static int s_StatusTaxiDepotsTotal;
         internal static int s_StatusTaxiDepotsWithDispatchCenter;
 
-        // “Last update” activity counts (written by OnUpdate in RiderControlSystem.cs)
+        // Last update activity counts (written by OnUpdate in RiderControlSystem.Core.cs)
         internal static int s_StatusLastAppliedIgnoreTaxi;
         internal static int s_StatusLastSkippedCommuters;
         internal static int s_StatusLastSkippedTourists;
         internal static int s_StatusLastClearedTaxiLaneWaiting;
         internal static int s_StatusLastClearedTaxiStandWaiting;
         internal static int s_StatusLastRemovedRideNeeder;
+
+        // -------------------------
+        // SYSTEM REFS
+        // -------------------------
+
+        private CityStatisticsSystem? m_CityStatisticsSystem;
+        private PrefabSystem? m_PrefabSystem;
+        private EntityQuery m_TransportConfigQuery;
+        private UITransportConfigurationPrefab? m_TransportConfig;
+
+        // -------------------------
+        // LIFECYCLE
+        // -------------------------
 
         private void InitStatusSystemsOnCreate()
         {
@@ -114,35 +145,15 @@ namespace RiderControl
 
         private void ResetStatusOnCityLoaded()
         {
-            m_StatusTimerSeconds = 0f;
-            s_StatusSnapshotCount = 0;
-            s_StatusSecondsSinceSnapshot = 0f;
+            s_StatusLastSnapshotRealtime = 0.0;
+            s_StatusLastSnapshotClock = "n/a";
 
-            s_InfoTaxiTourist = 0;
-            s_InfoTaxiCitizen = 0;
-            s_InfoBusTourist = 0;
-            s_InfoBusCitizen = 0;
-            s_InfoTramTourist = 0;
-            s_InfoTramCitizen = 0;
-            s_InfoTrainTourist = 0;
-            s_InfoTrainCitizen = 0;
-            s_InfoSubwayTourist = 0;
-            s_InfoSubwayCitizen = 0;
-            s_InfoShipTourist = 0;
-            s_InfoShipCitizen = 0;
-            s_InfoFerryTourist = 0;
-            s_InfoFerryCitizen = 0;
-            s_InfoAirTourist = 0;
-            s_InfoAirCitizen = 0;
-            s_InfoTotalTourist = 0;
-            s_InfoTotalCitizen = 0;
+            s_StatusRefreshRequested = false;
+            s_StatusForceRefresh = false;
 
-            s_StatusTaxiStandsTotal = 0;
-            s_StatusTaxiDepotsTotal = 0;
-            s_StatusTaxiDepotsWithDispatchCenter = 0;
+            ResetStatusFields();
 
             // Cache the same transport config prefab used by TransportInfoviewUISystem (best-effort).
-            // If this fails (e.g. during partial loads), StatusInfoViewMonthly will remain 0s.
             try
             {
                 if (m_PrefabSystem != null)
@@ -156,76 +167,80 @@ namespace RiderControl
             }
         }
 
+        // Called from RiderControlSystem.Core.cs (kept name to minimize changes).
         private void TickStatusSnapshot()
         {
-            // Use unscaled time so Status still updates while paused in the Options menu.
-            float dt = UnityEngine.Time.unscaledDeltaTime;
-
-            s_StatusSecondsSinceSnapshot += dt;
-            m_StatusTimerSeconds += dt;
-
-            if (m_StatusTimerSeconds < kStatusIntervalSeconds)
+            if (!s_StatusRefreshRequested)
             {
                 return;
             }
 
-            m_StatusTimerSeconds = 0f;
-            s_StatusSecondsSinceSnapshot = 0f;
-            s_StatusSnapshotCount++;
+            double now = UTime.realtimeSinceStartupAsDouble;
+
+            // Force refresh wins.
+            if (!s_StatusForceRefresh)
+            {
+                if (s_StatusLastSnapshotRealtime > 0.0)
+                {
+                    double age = Math.Max(0.0, now - s_StatusLastSnapshotRealtime);
+                    if (age < kAutoRefreshMinSeconds)
+                    {
+                        return;
+                    }
+                }
+            }
+
+            s_StatusRefreshRequested = false;
+            s_StatusForceRefresh = false;
 
             UpdateStatusSnapshot();
+
+            s_StatusLastSnapshotRealtime = now;
+            try
+            {
+                s_StatusLastSnapshotClock = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                s_StatusLastSnapshotClock = "n/a";
+            }
         }
 
         private void UpdateStatusSnapshot()
         {
-            // Reset
-            s_StatusResidentsTotal = 0;
-            s_StatusResidentsIgnoreTaxi = 0;
-            s_StatusResidentsForcedMarker = 0;
+            ResetStatusFields();
 
-            s_StatusCommutersTotal = 0;
-            s_StatusCommutersIgnoreTaxi = 0;
-
-            s_StatusTouristsTotal = 0;
-            s_StatusTouristsIgnoreTaxi = 0;
-
-            s_StatusWaitingTransportTotal = 0;
-            s_StatusWaitingTaxiStandTotal = 0;
-
-            s_StatusReqStand = 0;
-            s_StatusReqCustomer = 0;
-            s_StatusReqOutside = 0;
-            s_StatusReqNone = 0;
-
-            s_StatusReqCustomerSeekerHasResident = 0;
-            s_StatusReqCustomerSeekerIgnoreTaxi = 0;
-            s_StatusReqOutsideSeekerHasResident = 0;
-            s_StatusReqOutsideSeekerIgnoreTaxi = 0;
-
-            s_StatusTaxisTotal = 0;
-            s_StatusTaxiTransporting = 0;
-            s_StatusTaxiBoarding = 0;
-            s_StatusTaxiReturning = 0;
-            s_StatusTaxiDispatched = 0;
-            s_StatusTaxiEnRoute = 0;
-            s_StatusTaxiParked = 0;
-            s_StatusTaxiAccident = 0;
-            s_StatusTaxiFromOutside = 0;
-            s_StatusTaxiDisabled = 0;
-            s_StatusTaxiWithDispatchBuffer = 0;
-
-            s_StatusPassengerTotal = 0;
-            s_StatusPassengerHasResident = 0;
-            s_StatusPassengerIgnoreTaxi = 0;
-
-            // Transportation InfoView passenger table (per month).
             UpdateStatusMonthlyPassengers();
-
-            // CITY SCAN: taxi depots + stands in city
             UpdateStatusTaxiDepotAndStandCounts();
 
-            // Residents + commuter/tourist counts (household-based)
-            foreach ((RefRO<CreatureResident> residentRef, Entity e) in SystemAPI.Query<RefRO<CreatureResident>>().WithEntityAccess())
+            // HOUSEHOLD SCAN: totals + types + moving-away
+            foreach ((RefRO<Household> _, Entity h) in SystemAPI
+                         .Query<RefRO<Household>>()
+                         .WithEntityAccess()
+                         .WithNone<Deleted, Temp>())
+            {
+                if (!EntityManager.Exists(h))
+                    continue;
+
+                s_StatusHouseholdsTotal++;
+
+                if (SystemAPI.HasComponent<CommuterHousehold>(h))
+                    s_StatusHouseholdsCommuter++;
+
+                if (SystemAPI.HasComponent<TouristHousehold>(h))
+                    s_StatusHouseholdsTourist++;
+
+                if (SystemAPI.HasComponent<HomelessHousehold>(h))
+                    s_StatusHouseholdsHomeless++;
+
+                if (SystemAPI.HasComponent<MovingAway>(h))
+                    s_StatusHouseholdsMovingAway++;
+            }
+
+            // RESIDENT SCAN: IgnoreTaxi + commuter/tourist residents (household-derived)
+            foreach ((RefRO<CreatureResident> residentRef, Entity e) in SystemAPI
+                         .Query<RefRO<CreatureResident>>()
+                         .WithEntityAccess())
             {
                 s_StatusResidentsTotal++;
 
@@ -234,7 +249,7 @@ namespace RiderControl
                 if (ignoreTaxi)
                     s_StatusResidentsIgnoreTaxi++;
 
-                if (SystemAPI.HasComponent<IgnoreTaxiMark>(e))  // In-game entity shows as RiderControl.IgnoreTaxiMark
+                if (SystemAPI.HasComponent<IgnoreTaxiMark>(e))
                     s_StatusResidentsForcedMarker++;
 
                 Entity citizenEntity = residentRef.ValueRO.m_Citizen;
@@ -244,6 +259,9 @@ namespace RiderControl
                 Entity household = SystemAPI.GetComponentRO<HouseholdMember>(citizenEntity).ValueRO.m_Household;
                 if (household == Entity.Null)
                     continue;
+
+                if (SystemAPI.HasComponent<MovingAway>(household))
+                    s_StatusResidentsInMovingAwayHousehold++;
 
                 if (SystemAPI.HasComponent<CommuterHousehold>(household))
                 {
@@ -260,8 +278,9 @@ namespace RiderControl
                 }
             }
 
-            // WaitingTransport totals (all transit waiters, not taxi-specific)
-            foreach ((RefRO<CreatureResident> residentRef, RefRO<HumanCurrentLane> _) in SystemAPI.Query<RefRO<CreatureResident>, RefRO<HumanCurrentLane>>())
+            // WaitingTransport totals (all transit waiters)
+            foreach ((RefRO<CreatureResident> residentRef, RefRO<HumanCurrentLane> _) in SystemAPI
+                         .Query<RefRO<CreatureResident>, RefRO<HumanCurrentLane>>())
             {
                 if ((residentRef.ValueRO.m_Flags & ResidentFlags.WaitingTransport) == 0)
                     continue;
@@ -269,16 +288,14 @@ namespace RiderControl
                 s_StatusWaitingTransportTotal++;
             }
 
-            // TaxiStand waiters (matches the TaxiStand tooltip "Passengers waiting")
-            // Note: Taxi stands track waiters via WaitingPassengers.m_Count on the TaxiStand entity,
-            // not via HumanCurrentLane.m_QueueEntity.
-            foreach (RefRO<WaitingPassengers> waiting in SystemAPI.Query<RefRO<WaitingPassengers>>().WithAll<TaxiStand>())
+            // TaxiStand waiters (matches TaxiStand tooltip "Passengers waiting")
+            foreach (RefRO<WaitingPassengers> waiting in SystemAPI
+                         .Query<RefRO<WaitingPassengers>>()
+                         .WithAll<TaxiStand>())
             {
                 int count = waiting.ValueRO.m_Count;
                 if (count > 0)
-                {
                     s_StatusWaitingTaxiStandTotal += count;
-                }
             }
 
             // TaxiRequest breakdown + seeker IgnoreTaxi sanity
@@ -297,8 +314,8 @@ namespace RiderControl
                         if (SystemAPI.HasComponent<CreatureResident>(req.m_Seeker))
                         {
                             s_StatusReqCustomerSeekerHasResident++;
-                            ResidentFlags rf = SystemAPI.GetComponentRO<CreatureResident>(req.m_Seeker).ValueRO.m_Flags;
-                            if ((rf & ResidentFlags.IgnoreTaxi) != 0)
+                            ResidentFlags seekerFlags = SystemAPI.GetComponentRO<CreatureResident>(req.m_Seeker).ValueRO.m_Flags;
+                            if ((seekerFlags & ResidentFlags.IgnoreTaxi) != 0)
                                 s_StatusReqCustomerSeekerIgnoreTaxi++;
                         }
                         break;
@@ -308,8 +325,8 @@ namespace RiderControl
                         if (SystemAPI.HasComponent<CreatureResident>(req.m_Seeker))
                         {
                             s_StatusReqOutsideSeekerHasResident++;
-                            ResidentFlags rf = SystemAPI.GetComponentRO<CreatureResident>(req.m_Seeker).ValueRO.m_Flags;
-                            if ((rf & ResidentFlags.IgnoreTaxi) != 0)
+                            ResidentFlags seekerFlags = SystemAPI.GetComponentRO<CreatureResident>(req.m_Seeker).ValueRO.m_Flags;
+                            if ((seekerFlags & ResidentFlags.IgnoreTaxi) != 0)
                                 s_StatusReqOutsideSeekerIgnoreTaxi++;
                         }
                         break;
@@ -321,43 +338,30 @@ namespace RiderControl
             }
 
             // Taxi fleet + passengers
-            foreach ((RefRO<Game.Vehicles.Taxi> taxiRef, Entity taxiEntity) in SystemAPI.Query<RefRO<Game.Vehicles.Taxi>>().WithEntityAccess())
+            foreach ((RefRO<Game.Vehicles.Taxi> taxiRef, Entity taxiEntity) in SystemAPI
+                         .Query<RefRO<Game.Vehicles.Taxi>>()
+                         .WithEntityAccess())
             {
                 s_StatusTaxisTotal++;
 
                 TaxiFlags flags = taxiRef.ValueRO.m_State;
 
-                // Mirror the in-game UI state selection for taxis (VehicleUIUtils.GetStateKey):
                 // Accident > Parked > Returning > Dispatched > Boarding > Transporting > EnRoute
                 if (SystemAPI.HasComponent<InvolvedInAccident>(taxiEntity))
-                {
                     s_StatusTaxiAccident++;
-                }
                 else if (SystemAPI.HasComponent<ParkedCar>(taxiEntity))
-                {
                     s_StatusTaxiParked++;
-                }
                 else if ((flags & TaxiFlags.Returning) != 0)
-                {
                     s_StatusTaxiReturning++;
-                }
                 else if ((flags & TaxiFlags.Dispatched) != 0)
-                {
                     s_StatusTaxiDispatched++;
-                }
                 else if ((flags & TaxiFlags.Boarding) != 0)
-                {
                     s_StatusTaxiBoarding++;
-                }
                 else if ((flags & TaxiFlags.Transporting) != 0)
-                {
                     s_StatusTaxiTransporting++;
-                }
                 else
-                {
-                    // This is what the vanilla UI shows as "En Route".
                     s_StatusTaxiEnRoute++;
-                }
+
                 if ((flags & TaxiFlags.FromOutside) != 0)
                     s_StatusTaxiFromOutside++;
                 if ((flags & TaxiFlags.Disabled) != 0)
@@ -381,8 +385,8 @@ namespace RiderControl
                         if (SystemAPI.HasComponent<CreatureResident>(p))
                         {
                             s_StatusPassengerHasResident++;
-                            ResidentFlags rf = SystemAPI.GetComponentRO<CreatureResident>(p).ValueRO.m_Flags;
-                            if ((rf & ResidentFlags.IgnoreTaxi) != 0)
+                            ResidentFlags pf = SystemAPI.GetComponentRO<CreatureResident>(p).ValueRO.m_Flags;
+                            if ((pf & ResidentFlags.IgnoreTaxi) != 0)
                                 s_StatusPassengerIgnoreTaxi++;
                         }
                     }
@@ -397,7 +401,6 @@ namespace RiderControl
                 return;
             }
 
-            // Reset (these are snapshot values, not accumulators)
             s_InfoTaxiTourist = 0;
             s_InfoTaxiCitizen = 0;
             s_InfoBusTourist = 0;
@@ -417,7 +420,6 @@ namespace RiderControl
             s_InfoTotalTourist = 0;
             s_InfoTotalCitizen = 0;
 
-            // Best-effort lazy init (in case the prefab wasn't ready at load-complete).
             if (m_TransportConfig == null && m_PrefabSystem != null)
             {
                 try
@@ -441,6 +443,7 @@ namespace RiderControl
                 UITransportSummaryItem item = items[i];
                 int citizen = 0;
                 int tourist = 0;
+
                 try
                 {
                     citizen = m_CityStatisticsSystem.GetStatisticValue(item.m_Statistic);
@@ -448,7 +451,7 @@ namespace RiderControl
                 }
                 catch
                 {
-                    // Some items may point at unsupported statistics; ignore.
+                    // Unsupported statistics are ignored.
                 }
 
                 int total = citizen + tourist;
@@ -502,19 +505,17 @@ namespace RiderControl
             s_StatusTaxiDepotsTotal = 0;
             s_StatusTaxiDepotsWithDispatchCenter = 0;
 
-            // Taxi stands (includes built-in station taxi stops)
             foreach ((RefRO<TaxiStand> _, Entity e) in SystemAPI
-                .Query<RefRO<TaxiStand>>()
-                .WithEntityAccess()
-                .WithNone<Deleted, Temp>())
+                         .Query<RefRO<TaxiStand>>()
+                         .WithEntityAccess()
+                         .WithNone<Deleted, Temp>())
             {
                 if (EntityManager.Exists(e))
                 {
                     s_StatusTaxiStandsTotal++;
                 }
             }
-            // Taxi depots (total + dispatch center count).
-            // NOTE: do NOT infer "small vs large" from capacity, since other mods can change capacity.
+
             foreach ((RefRO<BuildingTransportDepot> depot, RefRO<PrefabRef> prefabRef) in SystemAPI
                          .Query<RefRO<BuildingTransportDepot>, RefRO<PrefabRef>>()
                          .WithNone<Deleted, Temp>())
@@ -532,7 +533,144 @@ namespace RiderControl
                 if ((depot.ValueRO.m_Flags & Game.Buildings.TransportDepotFlags.HasDispatchCenter) != 0)
                     s_StatusTaxiDepotsWithDispatchCenter++;
             }
+        }
 
+        // -------------------------
+        // HELPERS
+        // -------------------------
+
+        private static void ResetStatusFields()
+        {
+            s_StatusResidentsTotal = 0;
+            s_StatusResidentsIgnoreTaxi = 0;
+            s_StatusResidentsForcedMarker = 0;
+
+            s_StatusCommutersTotal = 0;
+            s_StatusCommutersIgnoreTaxi = 0;
+
+            s_StatusTouristsTotal = 0;
+            s_StatusTouristsIgnoreTaxi = 0;
+
+            s_StatusWaitingTransportTotal = 0;
+            s_StatusWaitingTaxiStandTotal = 0;
+
+            s_StatusHouseholdsTotal = 0;
+            s_StatusHouseholdsCommuter = 0;
+            s_StatusHouseholdsTourist = 0;
+            s_StatusHouseholdsHomeless = 0;
+            s_StatusHouseholdsMovingAway = 0;
+            s_StatusResidentsInMovingAwayHousehold = 0;
+
+            s_StatusReqStand = 0;
+            s_StatusReqCustomer = 0;
+            s_StatusReqOutside = 0;
+            s_StatusReqNone = 0;
+
+            s_StatusReqCustomerSeekerHasResident = 0;
+            s_StatusReqCustomerSeekerIgnoreTaxi = 0;
+            s_StatusReqOutsideSeekerHasResident = 0;
+            s_StatusReqOutsideSeekerIgnoreTaxi = 0;
+
+            s_StatusTaxisTotal = 0;
+            s_StatusTaxiTransporting = 0;
+            s_StatusTaxiBoarding = 0;
+            s_StatusTaxiReturning = 0;
+            s_StatusTaxiDispatched = 0;
+            s_StatusTaxiEnRoute = 0;
+            s_StatusTaxiParked = 0;
+            s_StatusTaxiAccident = 0;
+            s_StatusTaxiFromOutside = 0;
+            s_StatusTaxiDisabled = 0;
+            s_StatusTaxiWithDispatchBuffer = 0;
+
+            s_StatusPassengerTotal = 0;
+            s_StatusPassengerHasResident = 0;
+            s_StatusPassengerIgnoreTaxi = 0;
+
+            s_StatusTaxiStandsTotal = 0;
+            s_StatusTaxiDepotsTotal = 0;
+            s_StatusTaxiDepotsWithDispatchCenter = 0;
+
+            s_InfoTaxiTourist = 0;
+            s_InfoTaxiCitizen = 0;
+            s_InfoBusTourist = 0;
+            s_InfoBusCitizen = 0;
+            s_InfoTramTourist = 0;
+            s_InfoTramCitizen = 0;
+            s_InfoTrainTourist = 0;
+            s_InfoTrainCitizen = 0;
+            s_InfoSubwayTourist = 0;
+            s_InfoSubwayCitizen = 0;
+            s_InfoShipTourist = 0;
+            s_InfoShipCitizen = 0;
+            s_InfoFerryTourist = 0;
+            s_InfoFerryCitizen = 0;
+            s_InfoAirTourist = 0;
+            s_InfoAirCitizen = 0;
+            s_InfoTotalTourist = 0;
+            s_InfoTotalCitizen = 0;
+
+            s_StatusLastAppliedIgnoreTaxi = 0;
+            s_StatusLastSkippedCommuters = 0;
+            s_StatusLastSkippedTourists = 0;
+            s_StatusLastClearedTaxiLaneWaiting = 0;
+            s_StatusLastClearedTaxiStandWaiting = 0;
+            s_StatusLastRemovedRideNeeder = 0;
+        }
+
+        internal static void AutoRequestStatusRefreshOnRead()
+        {
+            if (s_StatusLastSnapshotRealtime <= 0.0)
+            {
+                s_StatusRefreshRequested = true;
+                return;
+            }
+
+            double now = UTime.realtimeSinceStartupAsDouble;
+            double age = now - s_StatusLastSnapshotRealtime;
+            if (age >= kAutoRefreshMinSeconds)
+            {
+                s_StatusRefreshRequested = true;
+            }
+        }
+
+        internal static void RequestStatusRefresh(bool force)
+        {
+            s_StatusRefreshRequested = true;
+            if (force)
+            {
+                s_StatusForceRefresh = true;
+            }
+        }
+
+        internal static string GetStatusLastStampText()
+        {
+            return string.IsNullOrEmpty(s_StatusLastSnapshotClock) ? "n/a" : s_StatusLastSnapshotClock;
+        }
+
+        internal static double GetStatusAgeSeconds()
+        {
+            if (s_StatusLastSnapshotRealtime <= 0.0)
+                return -1.0;
+
+            double now = UTime.realtimeSinceStartupAsDouble;
+            return Math.Max(0.0, now - s_StatusLastSnapshotRealtime);
+        }
+
+        internal static string GetStatusAgeText()
+        {
+            double age = GetStatusAgeSeconds();
+            if (age < 0.0)
+                return "n/a";
+
+            if (age < 90.0)
+            {
+                long s = (long)Math.Round(age, MidpointRounding.AwayFromZero);
+                return $"{s}s";
+            }
+
+            long m = (long)Math.Round(age / 60.0, MidpointRounding.AwayFromZero);
+            return $"{m}m";
         }
     }
 }

@@ -1,4 +1,4 @@
-// Systems/RiderControlSystem.Debug.cs
+// File: Systems/RiderControlSystem.Debug.cs
 // Optional debug logging helpers (controlled by settings).
 
 namespace RiderControl
@@ -32,6 +32,14 @@ namespace RiderControl
 
             m_DebugTimerSeconds = 0f;
 
+            // Keep snapshot reasonably fresh for debug summaries, but don't spam.
+            // (This is debug-only; normal gameplay has request-driven scans.)
+            double age = RiderControlSystem.GetStatusAgeSeconds();
+            if (age < 0.0 || age > 30.0)
+            {
+                RiderControlSystem.RequestStatusRefresh(force: true);
+            }
+
             int dailyTaxiCitizen = 0;
             int dailyTaxiTourist = 0;
             try
@@ -64,7 +72,7 @@ namespace RiderControl
                 $"clearedTaxiStandPassengers={clearedTaxiStandWaitingPassengers}, " +
                 $"blockTaxiUsage={setting.BlockTaxiUsage}");
 
-            // If there are still taxi passengers, log who/why (purpose/components) so we can find the source system.
+            // If there are still taxi passengers, log who/why (purpose/components) to find the source system.
             LogActiveTaxiPassengers();
         }
 
