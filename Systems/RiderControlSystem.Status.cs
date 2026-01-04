@@ -5,7 +5,6 @@ namespace RiderControl
 {
     using Game.Agents;          // MovingAway
     using Game.Citizens;        // HouseholdMember, Household
-    using Game.City;            // CityStatisticsSystem, UITransportConfigurationPrefab, UITransportSummaryItem, TransportType
     using Game.Common;          // Deleted
     using Game.Creatures;       // ResidentFlags, Passenger, HumanCurrentLane, Resident
     using Game.Events;          // InvolvedInAccident
