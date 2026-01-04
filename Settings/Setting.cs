@@ -100,6 +100,18 @@ namespace RiderControl
             get; set;
         }
 
+        public bool IsStatusReady()
+        {
+            return RiderControlSystem.s_StatusLastSnapshotRealtime > 0.0;
+        }
+
+        public bool IsStatusNotReady()
+        {
+            return !IsStatusReady();
+        }
+
+
+
         [SettingsUISection(ActionsTab, DebugGroup)]
         public bool EnableDebugLogging
         {
@@ -122,9 +134,44 @@ namespace RiderControl
             }
         }
 
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusReady))]
+        [SettingsUISection(StatusTab, CityScanGroup)]
+        public string StatusNotReadyCityScan
+        {
+            get
+            {
+                RiderControlSystem.AutoRequestStatusRefreshOnRead();
+                return string.Empty;
+            }
+        }
+
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusReady))]
+        [SettingsUISection(StatusTab, TaxiScanGroup)]
+        public string StatusNotReadyTaxiScan
+        {
+            get
+            {
+                RiderControlSystem.AutoRequestStatusRefreshOnRead();
+                return string.Empty;
+            }
+        }
+
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusReady))]
+        [SettingsUISection(StatusTab, LastUpdateGroup)]
+        public string StatusNotReadyLastUpdate
+        {
+            get
+            {
+                RiderControlSystem.AutoRequestStatusRefreshOnRead();
+                return string.Empty;
+            }
+        }
+
+
         // CITY SCAN
 
         [SettingsUISection(StatusTab, CityScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusMonthlyPassengers1
         {
             get
@@ -135,6 +182,7 @@ namespace RiderControl
         }
 
         [SettingsUISection(StatusTab, CityScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusMonthlyTotal
         {
             get
@@ -145,6 +193,7 @@ namespace RiderControl
         }
 
         [SettingsUISection(StatusTab, CityScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusWaiting
         {
             get
@@ -157,16 +206,19 @@ namespace RiderControl
         // TAXI SCAN
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusTaxiSupply
         {
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"Taxis {RiderControlSystem.s_StatusTaxisTotal:N0} | Depots {RiderControlSystem.s_StatusTaxiDepotsTotal:N0} | DispatchCenters {RiderControlSystem.s_StatusTaxiDepotsWithDispatchCenter:N0} | Stands {RiderControlSystem.s_StatusTaxiStandsTotal:N0}";
+                return $"{RiderControlSystem.s_StatusTaxisTotal:N0} TAXIS | {RiderControlSystem.s_StatusTaxiDepotsTotal:N0} DEPOTS | {RiderControlSystem.s_StatusTaxiDepotsWithDispatchCenter:N0} DispatchCenter | {RiderControlSystem.s_StatusTaxiStandsTotal:N0} STANDS";
             }
         }
 
+
         [SettingsUISection(StatusTab, TaxiScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusRequests
         {
             get
@@ -177,6 +229,7 @@ namespace RiderControl
         }
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusPassengers
         {
             get
@@ -187,6 +240,7 @@ namespace RiderControl
         }
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusTaxiFleet
         {
             get
@@ -197,6 +251,7 @@ namespace RiderControl
         }
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusTaxiFlags
         {
             get
@@ -207,6 +262,7 @@ namespace RiderControl
         }
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusTaxiStands
         {
             get
@@ -219,6 +275,7 @@ namespace RiderControl
         // LAST UPDATE
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusCoverage
         {
             get
@@ -229,16 +286,19 @@ namespace RiderControl
         }
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusWorkDone1 =>
             $"IgnoreTaxiApplied {RiderControlSystem.s_StatusLastAppliedIgnoreTaxi:N0} | RideNeederRemoved {RiderControlSystem.s_StatusLastRemovedRideNeeder:N0} | TaxiLaneCleared {RiderControlSystem.s_StatusLastClearedTaxiLaneWaiting:N0}";
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusWorkDone2 =>
             $"TaxiStandCleared {RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} | CommutersSkipped {RiderControlSystem.s_StatusLastSkippedCommuters:N0} | TouristsSkipped {RiderControlSystem.s_StatusLastSkippedTourists:N0}";
 
 
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusSnapshotMeta =>
             $"Last {RiderControlSystem.GetStatusLastStampText()} | Age {RiderControlSystem.GetStatusAgeText()}";
 

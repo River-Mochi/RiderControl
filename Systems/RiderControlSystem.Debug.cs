@@ -3,12 +3,13 @@
 
 namespace RiderControl
 {
-    using Game.Citizens;
-    using Game.City;
-    using Game.Companies;
-    using Game.Creatures;
-    using Game.Vehicles;
+    using Game.Citizens;   // Citizen, CitizenFlags, HouseholdMember, TravelPurpose
+    using Game.City;       // StatisticType, PassengerType
+    using Game.Companies;  // ResourceBuyer (breadcrumb)
+    using Game.Creatures;  // ResidentFlags
+    using Game.Vehicles;   // CurrentVehicle, Taxi, TaxiFlags
     using Unity.Entities;
+    using CreatureResident = Game.Creatures.Resident;
 
     public partial class RiderControlSystem
     {
@@ -23,25 +24,19 @@ namespace RiderControl
 
         private void TickDebugLogging(Setting setting, float intervalSeconds, int clearedTaxiStandWaitingPassengers)
         {
-            // Use unscaled time so debug logging still ticks while paused in the Options menu.
             m_DebugTimerSeconds += UnityEngine.Time.unscaledDeltaTime;
             if (m_DebugTimerSeconds < intervalSeconds)
-            {
                 return;
-            }
 
             m_DebugTimerSeconds = 0f;
 
-            // Keep snapshot reasonably fresh for debug summaries, but don't spam.
-            // (This is debug-only; normal gameplay has request-driven scans.)
             double age = RiderControlSystem.GetStatusAgeSeconds();
             if (age < 0.0 || age > 30.0)
-            {
                 RiderControlSystem.RequestStatusRefresh(force: true);
-            }
 
             int dailyTaxiCitizen = 0;
             int dailyTaxiTourist = 0;
+
             try
             {
                 if (m_CityStatisticsSystem != null)
@@ -52,10 +47,8 @@ namespace RiderControl
             }
             catch
             {
-                // Never let stats access crash simulation.
             }
 
-            // Reuse snapshot numbers to keep debug logging cheap.
             Mod.s_Log.Info(
                 $"{Mod.ModTag} TaxiSummary: " +
                 $"taxis={s_StatusTaxisTotal}, transporting={s_StatusTaxiTransporting}, boarding={s_StatusTaxiBoarding}, returning={s_StatusTaxiReturning}, dispatched={s_StatusTaxiDispatched}, enRoute={s_StatusTaxiEnRoute}, parked={s_StatusTaxiParked}, accident={s_StatusTaxiAccident}, " +
@@ -72,38 +65,29 @@ namespace RiderControl
                 $"clearedTaxiStandPassengers={clearedTaxiStandWaitingPassengers}, " +
                 $"blockTaxiUsage={setting.BlockTaxiUsage}");
 
-            // If there are still taxi passengers, log who/why (purpose/components) to find the source system.
             LogActiveTaxiPassengers();
         }
 
         private void LogActiveTaxiPassengers()
         {
             if (!Mod.s_Log.isDebugEnabled)
-            {
-                // Verbose option may be enabled while the global log level is higher than Debug;
-                // keep this detailed scan behind Debug to avoid heavy logging/allocations.
                 return;
-            }
 
             int inTaxi = 0;
             int examples = 0;
 
-            foreach ((RefRO<Resident> resident, RefRO<CurrentVehicle> currentVehicle, Entity passengerEntity) in SystemAPI
-                         .Query<RefRO<Resident>, RefRO<CurrentVehicle>>()
+            foreach ((RefRO<CreatureResident> resident, RefRO<CurrentVehicle> currentVehicle, Entity passengerEntity) in SystemAPI
+                         .Query<RefRO<CreatureResident>, RefRO<CurrentVehicle>>()
                          .WithEntityAccess())
             {
                 Entity vehicle = currentVehicle.ValueRO.m_Vehicle;
                 if (vehicle == Entity.Null || !SystemAPI.HasComponent<Taxi>(vehicle))
-                {
                     continue;
-                }
 
                 inTaxi++;
 
                 if (examples >= kDebugPassengerDetailMax)
-                {
                     continue;
-                }
 
                 examples++;
 
@@ -111,17 +95,16 @@ namespace RiderControl
                 bool ignoreTaxi = (rf & ResidentFlags.IgnoreTaxi) != 0;
                 bool forced = SystemAPI.HasComponent<IgnoreTaxiMark>(passengerEntity);
 
-                // Citizen flags + household classification
                 Entity citizenEntity = resident.ValueRO.m_Citizen;
+
                 CitizenFlags citizenFlags = 0;
                 bool hhCommuter = false;
                 bool hhTourist = false;
-                if (citizenEntity != Entity.Null)
+
+                if (citizenEntity != Entity.Null && EntityManager.Exists(citizenEntity))
                 {
                     if (SystemAPI.HasComponent<Citizen>(citizenEntity))
-                    {
                         citizenFlags = SystemAPI.GetComponentRO<Citizen>(citizenEntity).ValueRO.m_State;
-                    }
 
                     if (SystemAPI.HasComponent<HouseholdMember>(citizenEntity))
                     {
@@ -134,10 +117,9 @@ namespace RiderControl
                     }
                 }
 
-                // Travel context hints
+                // Breadcrumb: which “economic/transactional” context is present?
                 bool hasResourceBuyer = SystemAPI.HasComponent<ResourceBuyer>(passengerEntity);
-                bool hasAttendingMeeting = SystemAPI.HasComponent<AttendingMeeting>(passengerEntity);
-                bool hasTripNeeded = SystemAPI.HasBuffer<TripNeeded>(passengerEntity);
+
                 string purpose = "none";
                 if (SystemAPI.HasComponent<TravelPurpose>(passengerEntity))
                 {
@@ -152,13 +134,11 @@ namespace RiderControl
                     $"vehicle={vehicle.Index}:{vehicle.Version} taxiFlags={taxiFlags} " +
                     $"ignoreTaxi={ignoreTaxi} forcedMarker={forced} " +
                     $"citizenFlags={citizenFlags} hhCommuter={hhCommuter} hhTourist={hhTourist} " +
-                    $"purpose={purpose} tripNeeded={hasTripNeeded} resourceBuyer={hasResourceBuyer} attendingMeeting={hasAttendingMeeting}");
+                    $"purpose={purpose} resourceBuyer={hasResourceBuyer}");
             }
 
             if (inTaxi > 0)
-            {
                 Mod.s_Log.Debug($"{Mod.ModTag} TaxiPassengerNow: totalResidentsInTaxi={inTaxi} (examplesShown={examples}/{kDebugPassengerDetailMax})");
-            }
         }
     }
 }

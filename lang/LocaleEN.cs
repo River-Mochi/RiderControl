@@ -86,6 +86,22 @@ namespace RiderControl
 
                 // ----- STATUS TAB -----
 
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusNotReadyCityScan)),
+                  "City scan not available yet." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusNotReadyCityScan)),
+                  "Open a city and let the simulation run a few minutes, then reopen Options → Status." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusNotReadyTaxiScan)),
+                  "Taxi scan not available yet." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusNotReadyTaxiScan)),
+                  "Open a city and let the simulation run a few minutes, then reopen Options → Status." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusNotReadyLastUpdate)),
+                  "No activity recorded yet." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusNotReadyLastUpdate)),
+                  "Once a scan completes, this section will show what changed in the last update." },
+
+
                 // CITY SCAN
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers1)), "Citizens/mo." },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyPassengers1)),

@@ -1,53 +1,105 @@
 // File: Systems/RiderControlSystem.Core.cs
-// Purpose: Demand-side control:
+// Purpose: Demand-side control (SAFE variant):
 // - Forces ResidentFlags.IgnoreTaxi (removes taxi from route selection)
 // - Unwinds taxi waiting states so cims do not freeze
-// - Cancels dispatchable TaxiRequest entities (non-stand)
-// - Delegates Status and Debug helpers to partial files
-
-using Game;
-using Game.Citizens;
-using Game.Creatures;
-using Game.Pathfind;
-using Game.Routes;
-using Game.Simulation;
-using Game.Vehicles;
-using Unity.Entities;
-using LoadPurpose = Colossal.Serialization.Entities.Purpose;
+// - DOES NOT destroy TaxiRequest entities (prevents ECB playback crashes)
+// Notes:
+// - Unity.Entities source generator needs certain namespaces visible from this file,
+//   because the system is partial and SystemAPI queries live in multiple files.
 
 namespace RiderControl
 {
+   // using Colossal.Serialization.Entities;
+    using Game;
+    using Game.Citizens;
+    using Game.Common;     // Deleted, Temp (needed by generator + query caching)
+    using Game.Creatures;  // ResidentFlags, CreatureLaneFlags, Resident, HumanCurrentLane, RideNeeder
+    using Game.Pathfind;   // PathOwner, PathFlags
+    using Game.Routes;     // TaxiStand, BoardingVehicle
+    using Game.Simulation; // TaxiRequest, TaxiRequestType, ServiceDispatch (needed by generator)
+    using Game.Tools;
+    using Game.Vehicles;   // Taxi
+    using Unity.Collections;
+    using Unity.Entities;
+    using CreatureResident = Game.Creatures.Resident;
+    using UTime = UnityEngine.Time;
+
     internal struct IgnoreTaxiMark : IComponentData
     {
     }
 
     public partial class RiderControlSystem : GameSystemBase
     {
-        private EndFrameBarrier m_EndFrameBarrier = null!;
+        // Batch limits to avoid hitching on huge cities.
+        private const int kMarkBatchPerUpdate = 2000;
+        private const float kUnstickIntervalSeconds = 1.0f;
+        private const float kReapplyIntervalSeconds = 2.0f;
+
+        // Cached queries (also ensures the generator “sees” these namespaces from THIS file).
+        private EntityQuery m_ResidentsWithoutMarkQuery;
+        private EntityQuery m_ResidentsWithMarkQuery;
+        private EntityQuery m_RideNeederQuery;
+        private EntityQuery m_ResidentLaneQuery;
+        private EntityQuery m_TaxiStandQuery;
+        private EntityQuery m_TaxiRequestQuery;
+
+        private float m_UnstickTimer;
+        private float m_ReapplyTimer;
 
         protected override void OnCreate()
         {
             base.OnCreate();
 
-            m_EndFrameBarrier = World.GetOrCreateSystemManaged<EndFrameBarrier>();
             InitStatusSystemsOnCreate();
+
+            // Cache queries with QueryBuilder (preferred for systems).
+            m_ResidentsWithoutMarkQuery = SystemAPI.QueryBuilder()
+                .WithAll<CreatureResident>()
+                .WithNone<IgnoreTaxiMark, Deleted, Temp>()
+                .Build();
+
+            m_ResidentsWithMarkQuery = SystemAPI.QueryBuilder()
+                .WithAll<CreatureResident, IgnoreTaxiMark>()
+                .WithNone<Deleted, Temp>()
+                .Build();
+
+            m_RideNeederQuery = SystemAPI.QueryBuilder()
+                .WithAll<RideNeeder, HumanCurrentLane, PathOwner>()
+                .WithNone<Deleted, Temp>()
+                .Build();
+
+            m_ResidentLaneQuery = SystemAPI.QueryBuilder()
+                .WithAll<CreatureResident, HumanCurrentLane, PathOwner>()
+                .WithNone<Deleted, Temp>()
+                .Build();
+
+            m_TaxiStandQuery = SystemAPI.QueryBuilder()
+                .WithAll<TaxiStand, WaitingPassengers>()
+                .WithNone<Deleted, Temp>()
+                .Build();
+
+            m_TaxiRequestQuery = SystemAPI.QueryBuilder()
+                .WithAll<TaxiRequest>()
+                .WithNone<Deleted, Temp>()
+                .Build();
 
             // Only run after a city is loaded.
             Enabled = false;
         }
 
-        protected override void OnGameLoadingComplete(LoadPurpose purpose, GameMode mode)
+        protected override void OnGameLoadingComplete(Colossal.Serialization.Entities.Purpose purpose, GameMode mode)
         {
             base.OnGameLoadingComplete(purpose, mode);
 
             bool isRealGame =
                 mode == GameMode.Game &&
-                (purpose == LoadPurpose.NewGame || purpose == LoadPurpose.LoadGame);
+                (purpose == Colossal.Serialization.Entities.Purpose.NewGame || purpose == Colossal.Serialization.Entities.Purpose.LoadGame);
 
             if (!isRealGame)
-            {
                 return;
-            }
+
+            m_UnstickTimer = 0f;
+            m_ReapplyTimer = 0f;
 
             ResetDebugOnCityLoaded();
             ResetStatusOnCityLoaded();
@@ -61,15 +113,12 @@ namespace RiderControl
 
         protected override void OnUpdate()
         {
-
             var setting = Mod.Setting;
             if (setting is null)
             {
                 Enabled = false;
                 return;
             }
-
-            EntityCommandBuffer ecb = m_EndFrameBarrier.CreateCommandBuffer();
 
             int appliedIgnoreTaxi = 0;
             int skippedCommuters = 0;
@@ -79,169 +128,169 @@ namespace RiderControl
             int clearedTaxiStandWaiting = 0;
 
             int clearedRideNeederLinks = 0;
-            int destroyedTaxiRequests = 0;
-
             int clearedTaxiStandWaitingPassengers = 0;
 
+            // --- OFF: undo only what we marked (batched) ---
             if (!setting.BlockTaxiUsage)
             {
-                // Undo only for entities marked by this mod.
-                foreach ((RefRW<Resident> resident, Entity entity) in SystemAPI
-                             .Query<RefRW<Resident>>()
+                using NativeList<Entity> toUnmark = new NativeList<Entity>(Allocator.Temp);
+
+                int processed = 0;
+                foreach ((RefRW<CreatureResident> resident, Entity entity) in SystemAPI
+                             .Query<RefRW<CreatureResident>>()
                              .WithAll<IgnoreTaxiMark>()
                              .WithEntityAccess())
                 {
-                    resident.ValueRW.m_Flags &= ~global::Game.Creatures.ResidentFlags.IgnoreTaxi;
-                    ecb.RemoveComponent<IgnoreTaxiMark>(entity);
+                    resident.ValueRW.m_Flags &= ~ResidentFlags.IgnoreTaxi;
+                    toUnmark.Add(entity);
+
+                    processed++;
+                    if (processed >= kMarkBatchPerUpdate)
+                        break;
                 }
 
+                if (toUnmark.Length > 0)
+                    EntityManager.RemoveComponent<IgnoreTaxiMark>(toUnmark.AsArray());
+
+                // Keep status ticking while we unwind in batches.
                 TickStatusSnapshot();
 
                 if (setting.EnableDebugLogging)
-                {
                     TickDebugLogging(setting, 10f, 0);
-                }
 
                 return;
             }
 
-            // 1) Force IgnoreTaxi for unmarked residents (optionally allow commuter/tourist households).
-            foreach ((RefRW<Resident> resident, Entity entity) in SystemAPI
-                         .Query<RefRW<Resident>>()
-                         .WithNone<IgnoreTaxiMark>()
-                         .WithEntityAccess())
+            // --- ON: mark + force IgnoreTaxi (batched) ---
+            using (NativeList<Entity> toMark = new NativeList<Entity>(Allocator.Temp))
             {
-                Entity citizenEntity = resident.ValueRO.m_Citizen;
+                int processed = 0;
 
-                if (citizenEntity != Entity.Null && SystemAPI.HasComponent<HouseholdMember>(citizenEntity))
+                foreach ((RefRW<CreatureResident> resident, Entity entity) in SystemAPI
+                             .Query<RefRW<CreatureResident>>()
+                             .WithNone<IgnoreTaxiMark>()
+                             .WithEntityAccess())
                 {
-                    Entity household = SystemAPI.GetComponentRO<HouseholdMember>(citizenEntity).ValueRO.m_Household;
-
-                    if (household != Entity.Null)
+                    // Skip commuter/tourist households if those blocks are OFF.
+                    Entity citizenEntity = resident.ValueRO.m_Citizen;
+                    if (citizenEntity != Entity.Null && SystemAPI.HasComponent<HouseholdMember>(citizenEntity))
                     {
-                        if (!setting.BlockCommuters && SystemAPI.HasComponent<CommuterHousehold>(household))
-                        {
-                            skippedCommuters++;
-                            continue;
-                        }
+                        Entity household = SystemAPI.GetComponentRO<HouseholdMember>(citizenEntity).ValueRO.m_Household;
 
-                        if (!setting.BlockTourists && SystemAPI.HasComponent<TouristHousehold>(household))
+                        if (household != Entity.Null)
                         {
-                            skippedTourists++;
-                            continue;
+                            if (!setting.BlockCommuters && SystemAPI.HasComponent<CommuterHousehold>(household))
+                            {
+                                skippedCommuters++;
+                                continue;
+                            }
+
+                            if (!setting.BlockTourists && SystemAPI.HasComponent<TouristHousehold>(household))
+                            {
+                                skippedTourists++;
+                                continue;
+                            }
                         }
                     }
+
+                    resident.ValueRW.m_Flags |= ResidentFlags.IgnoreTaxi;
+                    toMark.Add(entity);
+                    appliedIgnoreTaxi++;
+
+                    processed++;
+                    if (processed >= kMarkBatchPerUpdate)
+                        break;
                 }
 
-                resident.ValueRW.m_Flags |= global::Game.Creatures.ResidentFlags.IgnoreTaxi;
-                ecb.AddComponent<IgnoreTaxiMark>(entity);
-                appliedIgnoreTaxi++;
+                if (toMark.Length > 0)
+                    EntityManager.AddComponent<IgnoreTaxiMark>(toMark.AsArray());
             }
 
-            // 2) Re-apply IgnoreTaxi for already-marked residents (cheap “keep it on”).
-            foreach (RefRW<Resident> resident in SystemAPI
-                         .Query<RefRW<Resident>>()
-                         .WithAll<IgnoreTaxiMark>())
+            // Periodic re-apply for already-marked residents (avoids full scan every frame).
+            m_ReapplyTimer += UTime.unscaledDeltaTime;
+            if (m_ReapplyTimer >= kReapplyIntervalSeconds)
             {
-                if ((resident.ValueRO.m_Flags & global::Game.Creatures.ResidentFlags.IgnoreTaxi) == 0)
+                m_ReapplyTimer = 0f;
+
+                foreach (RefRW<CreatureResident> resident in SystemAPI
+                             .Query<RefRW<CreatureResident>>()
+                             .WithAll<IgnoreTaxiMark>())
                 {
-                    resident.ValueRW.m_Flags |= global::Game.Creatures.ResidentFlags.IgnoreTaxi;
+                    if ((resident.ValueRO.m_Flags & ResidentFlags.IgnoreTaxi) == 0)
+                        resident.ValueRW.m_Flags |= ResidentFlags.IgnoreTaxi;
                 }
             }
 
-            // 3) Unstick targeted taxi-wait posture using RideNeeder as the filter.
-            foreach ((RefRW<RideNeeder> rn,
-                      RefRW<HumanCurrentLane> lane,
-                      RefRW<PathOwner> pathOwner) in SystemAPI
-                         .Query<RefRW<RideNeeder>, RefRW<HumanCurrentLane>, RefRW<PathOwner>>())
+            // Unstick logic (run on an interval, not every frame).
+            m_UnstickTimer += UTime.unscaledDeltaTime;
+            if (m_UnstickTimer >= kUnstickIntervalSeconds)
             {
-                var taxiWaitMask = global::Game.Creatures.CreatureLaneFlags.ParkingSpace | global::Game.Creatures.CreatureLaneFlags.Taxi;
+                m_UnstickTimer = 0f;
 
-                if ((lane.ValueRO.m_Flags & taxiWaitMask) != taxiWaitMask)
+                // 3) Unstick taxi-wait posture using RideNeeder as the filter.
+                foreach ((RefRW<RideNeeder> rn,
+                          RefRW<HumanCurrentLane> lane,
+                          RefRW<PathOwner> pathOwner) in SystemAPI
+                             .Query<RefRW<RideNeeder>, RefRW<HumanCurrentLane>, RefRW<PathOwner>>())
                 {
-                    continue;
-                }
+                    var taxiWaitMask = CreatureLaneFlags.ParkingSpace | CreatureLaneFlags.Taxi;
 
-                lane.ValueRW.m_Flags &= ~taxiWaitMask;
-                lane.ValueRW.m_QueueEntity = Entity.Null;
+                    if ((lane.ValueRO.m_Flags & taxiWaitMask) != taxiWaitMask)
+                        continue;
 
-                if (rn.ValueRO.m_RideRequest != Entity.Null)
-                {
-                    rn.ValueRW.m_RideRequest = Entity.Null;
-                    clearedRideNeederLinks++;
-                }
+                    lane.ValueRW.m_Flags &= ~taxiWaitMask;
+                    lane.ValueRW.m_QueueEntity = Entity.Null;
 
-                pathOwner.ValueRW.m_State &= ~global::Game.Pathfind.PathFlags.Failed;
-                pathOwner.ValueRW.m_State |= global::Game.Pathfind.PathFlags.Obsolete;
-
-                clearedTaxiLaneWaiting++;
-            }
-
-            // 4) Unstick residents waiting at taxi stands / taxi boarding vehicles.
-            foreach ((RefRW<Resident> resident,
-                      RefRW<HumanCurrentLane> lane,
-                      RefRW<PathOwner> pathOwner) in SystemAPI
-                         .Query<RefRW<Resident>, RefRW<HumanCurrentLane>, RefRW<PathOwner>>())
-            {
-                if ((resident.ValueRO.m_Flags & global::Game.Creatures.ResidentFlags.WaitingTransport) == 0)
-                {
-                    continue;
-                }
-
-                Entity q = lane.ValueRO.m_QueueEntity;
-                if (q == Entity.Null)
-                {
-                    continue;
-                }
-
-                bool isTaxiQueue = SystemAPI.HasComponent<TaxiStand>(q);
-
-                if (!isTaxiQueue && SystemAPI.HasComponent<BoardingVehicle>(q))
-                {
-                    BoardingVehicle bv = SystemAPI.GetComponentRO<BoardingVehicle>(q).ValueRO;
-
-                    // Yes: Taxi is a component in Game.Vehicles; with `using Game.Vehicles;` this is correct.
-                    // If VS still acts up, change to: SystemAPI.HasComponent<global::Game.Vehicles.Taxi>(...)
-                    if (bv.m_Vehicle != Entity.Null && SystemAPI.HasComponent<Taxi>(bv.m_Vehicle))
+                    if (rn.ValueRO.m_RideRequest != Entity.Null)
                     {
-                        isTaxiQueue = true;
+                        rn.ValueRW.m_RideRequest = Entity.Null;
+                        clearedRideNeederLinks++;
                     }
+
+                    pathOwner.ValueRW.m_State &= ~PathFlags.Failed;
+                    pathOwner.ValueRW.m_State |= PathFlags.Obsolete;
+
+                    clearedTaxiLaneWaiting++;
                 }
 
-                if (!isTaxiQueue)
+                // 4) Unstick residents waiting at taxi stands / taxi boarding vehicles.
+                foreach ((RefRW<CreatureResident> resident,
+                          RefRW<HumanCurrentLane> lane,
+                          RefRW<PathOwner> pathOwner) in SystemAPI
+                             .Query<RefRW<CreatureResident>, RefRW<HumanCurrentLane>, RefRW<PathOwner>>())
                 {
-                    continue;
+                    if ((resident.ValueRO.m_Flags & ResidentFlags.WaitingTransport) == 0)
+                        continue;
+
+                    Entity q = lane.ValueRO.m_QueueEntity;
+                    if (q == Entity.Null)
+                        continue;
+
+                    bool isTaxiQueue = SystemAPI.HasComponent<TaxiStand>(q);
+
+                    if (!isTaxiQueue && SystemAPI.HasComponent<BoardingVehicle>(q))
+                    {
+                        BoardingVehicle bv = SystemAPI.GetComponentRO<BoardingVehicle>(q).ValueRO;
+                        if (bv.m_Vehicle != Entity.Null && SystemAPI.HasComponent<Taxi>(bv.m_Vehicle))
+                            isTaxiQueue = true;
+                    }
+
+                    if (!isTaxiQueue)
+                        continue;
+
+                    resident.ValueRW.m_Flags &= ~ResidentFlags.WaitingTransport;
+                    lane.ValueRW.m_QueueEntity = Entity.Null;
+                    lane.ValueRW.m_Flags &= ~(CreatureLaneFlags.ParkingSpace | CreatureLaneFlags.Taxi);
+
+                    pathOwner.ValueRW.m_State &= ~PathFlags.Failed;
+                    pathOwner.ValueRW.m_State |= PathFlags.Obsolete;
+
+                    clearedTaxiStandWaiting++;
                 }
 
-                resident.ValueRW.m_Flags &= ~global::Game.Creatures.ResidentFlags.WaitingTransport;
-
-                lane.ValueRW.m_QueueEntity = Entity.Null;
-                lane.ValueRW.m_Flags &= ~(global::Game.Creatures.CreatureLaneFlags.ParkingSpace | global::Game.Creatures.CreatureLaneFlags.Taxi);
-
-                pathOwner.ValueRW.m_State &= ~global::Game.Pathfind.PathFlags.Failed;
-                pathOwner.ValueRW.m_State |= global::Game.Pathfind.PathFlags.Obsolete;
-
-                clearedTaxiStandWaiting++;
-            }
-
-            // 5) Cancel non-stand TaxiRequest entities so dispatch doesn’t keep feeding taxis.
-            foreach ((RefRO<TaxiRequest> reqRef, Entity reqEntity) in SystemAPI
-                         .Query<RefRO<TaxiRequest>>()
-                         .WithEntityAccess())
-            {
-                if (reqRef.ValueRO.m_Type == TaxiRequestType.Stand)
-                {
-                    continue;
-                }
-
-                ecb.DestroyEntity(reqEntity);
-                destroyedTaxiRequests++;
-            }
-
-            // 6) Stand-side block (optional).
-            if (setting.BlockTaxiStandDemand)
-            {
-                clearedTaxiStandWaitingPassengers = TickBlockTaxiStandDemand(ecb);
+                // 5) Stand-side block (optional).
+                if (setting.BlockTaxiStandDemand)
+                    clearedTaxiStandWaitingPassengers = TickBlockTaxiStandDemand();
             }
 
             // Status fields (defined in Status partial).
@@ -255,9 +304,7 @@ namespace RiderControl
             TickStatusSnapshot();
 
             if (setting.EnableDebugLogging)
-            {
                 TickDebugLogging(setting, 10f, clearedTaxiStandWaitingPassengers);
-            }
         }
     }
 }
