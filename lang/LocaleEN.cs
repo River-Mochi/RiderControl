@@ -39,7 +39,7 @@ namespace RiderControl
                 { m_Setting.GetOptionGroupLocaleID(Setting.DebugGroup),    "Debug / Logging" },
 
                 // STATUS snapshot refresh behavior
-                { m_Setting.GetOptionGroupLocaleID(Setting.CityScanGroup), "CITY TRANSIT SCAN (per month)" },
+                { m_Setting.GetOptionGroupLocaleID(Setting.CityScanGroup), "CITY TRANSIT (per month)" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.TaxiScanGroup), "TAXI SCAN" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.LastUpdateGroup), "LAST UPDATE" },
 

@@ -199,7 +199,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"Waiting Transport {RiderControlSystem.s_StatusWaitingTransportTotal:N0} | All Transit Use {RiderControlSystem.s_InfoTotalTourist:N0}T/ {RiderControlSystem.s_InfoTotalCitizen:N0}C";
+                return $"Waiting transport {RiderControlSystem.s_StatusWaitingTransportTotal:N0} | All types: {RiderControlSystem.s_InfoTotalCitizen:N0} citizen, {RiderControlSystem.s_InfoTotalTourist:N0} tourist";
             }
         }
 
