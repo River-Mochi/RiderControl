@@ -108,11 +108,16 @@ namespace RiderControl
                     "Transportation InfoView passenger table\n" +
                     "(Tourists (T)/Citizens (C) per month)." },
 
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers2)), "Citizens/mo." },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyPassengers2)),
+                    "More InfoView passenger table\n" +
+                    "(Tourists (T)/Citizens (C) per month)." },
+
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyTotal)), "Total/month" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyTotal)), "Total passengers per month." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusWaiting)), "Total Waiting" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusWaiting)), "Total Waiting Transport and waiting Taxi Stand." },
+              //  { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusWaiting)), "Total Waiting Transport" },
+              //  { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusWaiting)), "Total Waiting Transport or at a Taxi Stand." },
 
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusTaxiSupply)), "Taxi supply" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusTaxiSupply)), "Total of Taxi: taxis, depots, dispatch centers, and wait-stands in the city." },

@@ -32,7 +32,7 @@ namespace RiderControl
             "Stats not available yet. Open a city and let the simulation run a few minutes.";
 
         private const string kActivityNotReady =
-            "No activity recorded yet.";
+            "No activity recorded yet. Load a city and let the simulation run.";
 
         private static bool s_StatusRefreshRequested;
         private static bool s_StatusForceRefresh;
