@@ -177,18 +177,18 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"Bus {RiderControlSystem.s_InfoBusTourist:N0}T/{RiderControlSystem.s_InfoBusCitizen:N0}C | Tram {RiderControlSystem.s_InfoTramTourist:N0}T/{RiderControlSystem.s_InfoTramCitizen:N0}C | Subway {RiderControlSystem.s_InfoSubwayTourist:N0}T/{RiderControlSystem.s_InfoSubwayCitizen:N0}C";
+                return $"Taxi {RiderControlSystem.s_InfoTaxiCitizen:N0} | Bus {RiderControlSystem.s_InfoBusCitizen:N0} | Tram {RiderControlSystem.s_InfoTramCitizen:N0} | Subway {RiderControlSystem.s_InfoSubwayCitizen:N0} | Train {RiderControlSystem.s_InfoTrainCitizen:N0}";
             }
         }
 
         [SettingsUISection(StatusTab, CityScanGroup)]
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
-        public string StatusMonthlyPassengers2
+        public string StatusMonthlyTourists
         {
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"Taxi {RiderControlSystem.s_InfoTaxiTourist:N0}T/{RiderControlSystem.s_InfoTaxiCitizen:N0}C| Train {RiderControlSystem.s_InfoTrainTourist:N0}T/{RiderControlSystem.s_InfoTrainCitizen:N0}C";
+                return $"Taxi {RiderControlSystem.s_InfoTaxiTourist:N0} | Bus {RiderControlSystem.s_InfoBusTourist:N0} | Tram {RiderControlSystem.s_InfoTramTourist:N0} | Subway {RiderControlSystem.s_InfoSubwayTourist:N0} | Train {RiderControlSystem.s_InfoTrainTourist:N0}";
             }
         }
 
@@ -257,7 +257,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"{RiderControlSystem.s_StatusTaxiWithDispatchBuffer:N0} WithDispatch | {RiderControlSystem.s_StatusTaxiWithDispatchBuffer:N0}| {RiderControlSystem.s_StatusTaxiFromOutside:N0} FromOutside | {RiderControlSystem.s_StatusTaxiDisabled:N0} Disabled";
+                return $"{RiderControlSystem.s_StatusTaxiWithDispatchBuffer:N0} WithDispatch | {RiderControlSystem.s_StatusTaxiFromOutside:N0} FromOutside | {RiderControlSystem.s_StatusTaxiDisabled:N0} Disabled";
             }
         }
 

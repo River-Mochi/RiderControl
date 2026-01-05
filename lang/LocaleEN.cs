@@ -39,7 +39,7 @@ namespace RiderControl
                 { m_Setting.GetOptionGroupLocaleID(Setting.DebugGroup),    "Debug / Logging" },
 
                 // STATUS snapshot refresh behavior
-                { m_Setting.GetOptionGroupLocaleID(Setting.CityScanGroup), "CITY SCAN (refresh on Options open)" },
+                { m_Setting.GetOptionGroupLocaleID(Setting.CityScanGroup), "CITY TRANSIT SCAN (per month)" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.TaxiScanGroup), "TAXI SCAN" },
                 { m_Setting.GetOptionGroupLocaleID(Setting.LastUpdateGroup), "LAST UPDATE" },
 
@@ -103,17 +103,17 @@ namespace RiderControl
 
 
                 // CITY SCAN
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers1)), "Citizens/mo." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers1)), "Citizens" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyPassengers1)),
                     "Transportation InfoView passenger table\n" +
                     "(Tourists (T)/Citizens (C) per month)." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyPassengers2)), "Citizens/mo." },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyPassengers2)),
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyTourists)), "Tourists" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyTourists)),
                     "More InfoView passenger table\n" +
                     "(Tourists (T)/Citizens (C) per month)." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyTotal)), "Total/month" },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusMonthlyTotal)), "Totals" },
                 { m_Setting.GetOptionDescLocaleID(nameof(Setting.StatusMonthlyTotal)), "Total passengers per month." },
 
               //  { m_Setting.GetOptionLabelLocaleID(nameof(Setting.StatusWaiting)), "Total Waiting Transport" },
