@@ -22,17 +22,17 @@ namespace RiderControl
 
     public partial class RiderControlSystem
     {
-        private const double kAutoRefreshMinSeconds = 240.0;
-        private const double kAgeShowSecondsMaxSeconds = 3600.0;
+        private const double kAutoRefreshMinSeconds = 240.0;      // auto-refresh every 4 min (real time)
+        private const double kAgeShowSecondsMaxSeconds = 3600.0;  // show Xm Ys until 1 hour, then switch to Xh Ym.
 
         private const string kCityScanNotReady =
-            "No transit processed yet. Open a city and let the simulation run.";
+            "No transit processed yet. Load a city and let it run a few minutes.";
 
         private const string kTaxiScanNotReady =
-            "Stats not available yet. Open a city and let the simulation run a few minutes.";
+            "Stats not available yet. Load a city and let it run a few minutes.";
 
         private const string kActivityNotReady =
-            "No activity recorded yet. Load a city and let the simulation run.";
+            "No activity recorded yet. Load a city and let it run a few minutes.";
 
         private static bool s_StatusRefreshRequested;
         private static bool s_StatusForceRefresh;

@@ -11,6 +11,27 @@ namespace RiderControl
     using UnityEngine;
 
     [FileLocation("ModsSettings/SmartTraveler/SmartTraveler")]
+#if DEBUG
+    [SettingsUIGroupOrder(
+        BehaviorGroup,
+        DebugGroup,
+        CityScanGroup,
+        TaxiScanGroup,
+        LastUpdateGroup,
+        AdvancedDebugGroup,
+        AboutInfoGroup,
+        AboutLinksGroup
+    )]
+    [SettingsUIShowGroupName(
+        BehaviorGroup,
+        DebugGroup,
+        CityScanGroup,
+        TaxiScanGroup,
+        LastUpdateGroup,
+        AdvancedDebugGroup,
+        AboutLinksGroup
+    )]
+#else
     [SettingsUIGroupOrder(
         BehaviorGroup,
         DebugGroup,
@@ -28,6 +49,7 @@ namespace RiderControl
         LastUpdateGroup,
         AboutLinksGroup
     )]
+#endif
     public sealed class Setting : ModSetting
     {
         public const string ActionsTab = "Actions";
@@ -40,6 +62,9 @@ namespace RiderControl
         public const string TaxiScanGroup = "TaxiScan";
         public const string LastUpdateGroup = "LastUpdate";
 
+        // Status-only debug group (DEBUG builds only)
+        public const string AdvancedDebugGroup = "AdvancedDebug";
+
         public const string AboutInfoGroup = "Info";
         public const string AboutLinksGroup = "Support Links";
 
@@ -48,10 +73,16 @@ namespace RiderControl
 
         private const string UrlDiscord = "https://discord.gg/HTav7ARPs2";
 
-        private bool m_BlockTaxiUsage = true;
+        // Exposed for systems that need to read settings safely without custom singletons.
+        internal static Setting? s_Instance;
+
+        private readonly bool m_BlockTaxiUsage = true;
+
+        private bool m_MovingAwayFixHighwayWalkers = true;
 
         public Setting(IMod mod) : base(mod)
         {
+            s_Instance = this;
             SetDefaults();
         }
 
@@ -100,6 +131,20 @@ namespace RiderControl
             get; set;
         }
 
+        // Moving-away highway walkers: clears IgnoreTransport so they can use transit to an outside connection.
+        [SettingsUISection(ActionsTab, BehaviorGroup)]
+        public bool MovingAwayFixHighwayWalkers
+        {
+            get => m_MovingAwayFixHighwayWalkers;
+            set
+            {
+                m_MovingAwayFixHighwayWalkers = value;
+
+                // Apply quickly next time Options/Status is read.
+                RiderControlSystem.RequestStatusRefresh(force: true);
+            }
+        }
+
         public bool IsStatusReady()
         {
             return RiderControlSystem.s_StatusLastSnapshotRealtime > 0.0;
@@ -110,8 +155,6 @@ namespace RiderControl
             return !IsStatusReady();
         }
 
-
-
         [SettingsUISection(ActionsTab, DebugGroup)]
         public bool EnableDebugLogging
         {
@@ -119,20 +162,7 @@ namespace RiderControl
         }
 
         // ---- Status ----
-
-        // Button: manual refresh (also happens automatically when Status rows are read, throttled).
-        [SettingsUIButton]
-        [SettingsUISection(StatusTab, CityScanGroup)]
-        public bool RefreshStatus
-        {
-            set
-            {
-                if (!value)
-                    return;
-
-                RiderControlSystem.RequestStatusRefresh(force: true);
-            }
-        }
+        // NOTE: Refresh button removed. Status updates are requested when Status rows are read (throttled).
 
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusReady))]
         [SettingsUISection(StatusTab, CityScanGroup)]
@@ -167,19 +197,7 @@ namespace RiderControl
             }
         }
 
-
         // CITY SCAN
-
-        [SettingsUISection(StatusTab, CityScanGroup)]
-        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
-        public string StatusMonthlyPassengers1
-        {
-            get
-            {
-                RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"Taxi {RiderControlSystem.s_InfoTaxiCitizen:N0} | Bus {RiderControlSystem.s_InfoBusCitizen:N0} | Tram {RiderControlSystem.s_InfoTramCitizen:N0} | Subway {RiderControlSystem.s_InfoSubwayCitizen:N0} | Train {RiderControlSystem.s_InfoTrainCitizen:N0}";
-            }
-        }
 
         [SettingsUISection(StatusTab, CityScanGroup)]
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
@@ -188,7 +206,18 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"Taxi {RiderControlSystem.s_InfoTaxiTourist:N0} | Bus {RiderControlSystem.s_InfoBusTourist:N0} | Tram {RiderControlSystem.s_InfoTramTourist:N0} | Subway {RiderControlSystem.s_InfoSubwayTourist:N0} | Train {RiderControlSystem.s_InfoTrainTourist:N0}";
+                return $"Taxi {RiderControlSystem.s_InfoTaxiTourist:N0} | Bus {RiderControlSystem.s_InfoBusTourist:N0} | Tram {RiderControlSystem.s_InfoTramTourist:N0} | Train {RiderControlSystem.s_InfoTrainTourist:N0} | Subway {RiderControlSystem.s_InfoSubwayTourist:N0} | Air";
+            }
+        }
+
+        [SettingsUISection(StatusTab, CityScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
+        public string StatusMonthlyPassengers1
+        {
+            get
+            {
+                RiderControlSystem.AutoRequestStatusRefreshOnRead();
+                return $"Taxi {RiderControlSystem.s_InfoTaxiCitizen:N0} | Bus {RiderControlSystem.s_InfoBusCitizen:N0} | Tram {RiderControlSystem.s_InfoTramCitizen:N0} | Train {RiderControlSystem.s_InfoTrainCitizen:N0} | Subway {RiderControlSystem.s_InfoSubwayCitizen:N0} | Air";
             }
         }
 
@@ -199,7 +228,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"Waiting transport {RiderControlSystem.s_StatusWaitingTransportTotal:N0} | All types: {RiderControlSystem.s_InfoTotalCitizen:N0} citizen, {RiderControlSystem.s_InfoTotalTourist:N0} tourist";
+                return $"Rider waiting {RiderControlSystem.s_StatusWaitingTransportTotal:N0} | Totals/mo. {RiderControlSystem.s_InfoTotalTourist:N0} tourist, {RiderControlSystem.s_InfoTotalCitizen:N0} citizen";
             }
         }
 
@@ -212,19 +241,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"{RiderControlSystem.s_StatusTaxisTotal:N0} TAXIS | {RiderControlSystem.s_StatusTaxiDepotsTotal:N0} DEPOTS | {RiderControlSystem.s_StatusTaxiDepotsWithDispatchCenter:N0} DispatchCenter | {RiderControlSystem.s_StatusTaxiStandsTotal:N0} STANDS";
-            }
-        }
-
-
-        [SettingsUISection(StatusTab, TaxiScanGroup)]
-        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
-        public string StatusRequests
-        {
-            get
-            {
-                RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"{RiderControlSystem.s_StatusReqCustomer:N0} Customer | {RiderControlSystem.s_StatusReqOutside:N0} Outside | {RiderControlSystem.s_StatusReqNone:N0} None";
+                return $"{RiderControlSystem.s_StatusTaxisTotal:N0} Taxis | {RiderControlSystem.s_StatusTaxiDepotsTotal:N0} Depots | {RiderControlSystem.s_StatusTaxiDepotsWithDispatchCenter:N0} DispatchCenter | {RiderControlSystem.s_StatusTaxiStandsTotal:N0} Stands";
             }
         }
 
@@ -236,6 +253,17 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return $"{RiderControlSystem.s_StatusPassengerTotal:N0} Total | {RiderControlSystem.s_StatusPassengerIgnoreTaxi:N0}/{RiderControlSystem.s_StatusPassengerHasResident:N0} Resident (IgnoreTaxi)";
+            }
+        }
+
+        [SettingsUISection(StatusTab, TaxiScanGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
+        public string StatusRequests
+        {
+            get
+            {
+                RiderControlSystem.AutoRequestStatusRefreshOnRead();
+                return $"{RiderControlSystem.s_StatusReqCustomer:N0} Customer | {RiderControlSystem.s_StatusReqOutside:N0} Outside | {RiderControlSystem.s_StatusReqNone:N0} None";
             }
         }
 
@@ -257,7 +285,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"{RiderControlSystem.s_StatusTaxiWithDispatchBuffer:N0} WithDispatch | {RiderControlSystem.s_StatusTaxiFromOutside:N0} FromOutside | {RiderControlSystem.s_StatusTaxiDisabled:N0} Disabled";
+                return $"{RiderControlSystem.s_StatusTaxiFromOutside:N0} FromOutside | {RiderControlSystem.s_StatusTaxiDisabled:N0} Disabled";
             }
         }
 
@@ -272,17 +300,27 @@ namespace RiderControl
             }
         }
 
-
         // LAST UPDATE
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
-        public string StatusCoverage
+        public string StatusCoverage1
         {
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"Residents {RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusResidentsTotal:N0} | Marked {RiderControlSystem.s_StatusResidentsForcedMarker:N0} | Commuters {RiderControlSystem.s_StatusCommutersIgnoreTaxi:N0}/{RiderControlSystem.s_StatusCommutersTotal:N0} | Tourists {RiderControlSystem.s_StatusTouristsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusTouristsTotal:N0}";
+                return $"ResidentsIgnore {RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0} / Total {RiderControlSystem.s_StatusResidentsTotal:N0} | Marked {RiderControlSystem.s_StatusResidentsForcedMarker:N0}";
+            }
+        }
+
+        [SettingsUISection(StatusTab, LastUpdateGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
+        public string StatusCoverage2
+        {
+            get
+            {
+                RiderControlSystem.AutoRequestStatusRefreshOnRead();
+                return $"Total Commuters {RiderControlSystem.s_StatusCommutersTotal:N0} / IgnoreTaxi {RiderControlSystem.s_StatusCommutersIgnoreTaxi:N0}  | Total Tourists {RiderControlSystem.s_StatusTouristsTotal:N0} / IgnoreTaxi {RiderControlSystem.s_StatusTouristsIgnoreTaxi:N0}";
             }
         }
 
@@ -296,12 +334,23 @@ namespace RiderControl
         public string StatusWorkDone2 =>
             $"TaxiStandCleared {RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} | CommutersSkipped {RiderControlSystem.s_StatusLastSkippedCommuters:N0} | TouristsSkipped {RiderControlSystem.s_StatusLastSkippedTourists:N0}";
 
-
-
         [SettingsUISection(StatusTab, LastUpdateGroup)]
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusSnapshotMeta =>
             $"Last {RiderControlSystem.GetStatusLastStampText()} | Age {RiderControlSystem.GetStatusAgeText()}";
+
+#if DEBUG
+        [SettingsUISection(StatusTab, AdvancedDebugGroup)]
+        [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
+        public string StatusDebugDispatchQueue
+        {
+            get
+            {
+                RiderControlSystem.AutoRequestStatusRefreshOnRead();
+                return $"{RiderControlSystem.s_StatusTaxiWithDispatchBuffer:N0}";
+            }
+        }
+#endif
 
         // ---- About ----
 
@@ -320,10 +369,7 @@ namespace RiderControl
             {
                 if (!value)
                     return;
-                try
-                {
-                    Application.OpenURL(UrlParadox);
-                }
+                try { Application.OpenURL(UrlParadox); }
                 catch (Exception) { }
             }
         }
@@ -337,10 +383,7 @@ namespace RiderControl
             {
                 if (!value)
                     return;
-                try
-                {
-                    Application.OpenURL(UrlDiscord);
-                }
+                try { Application.OpenURL(UrlDiscord); }
                 catch (Exception) { }
             }
         }
@@ -351,6 +394,9 @@ namespace RiderControl
             BlockCommuters = true;
             BlockTourists = true;
             BlockTaxiStandDemand = true;
+
+            MovingAwayFixHighwayWalkers = true;
+
             EnableDebugLogging = false;
         }
 
