@@ -1,4 +1,4 @@
-// Mod.cs
+// File: Mod.cs
 // Entry point for "Smart Traveler".
 
 namespace RiderControl
@@ -41,30 +41,24 @@ namespace RiderControl
                 s_Log.Info($"{ModId} {ModTag} v{ModVersion} OnLoad");
             }
 
-            // Stabilize file logging: keep the stream open (still Colossal.Logging, not UnityEngine.Debug).
-            if (s_Log is UnityLogger unityLogger)
+            if (s_Log is UnityLogger unityLogger)   // Stabilize file logging: keep stream open (still Colossal.Logging, not UnityEngine.Debug).
             {
                 unityLogger.keepStreamOpen = true;
 
-                // Ensure log directory exists (prevents Open() failing on missing folder).
                 try
                 {
                     string? dir = Path.GetDirectoryName(unityLogger.logPath);
-                    if (!string.IsNullOrEmpty(dir))
-                    {
+                    if (!string.IsNullOrEmpty(dir))     // Ensure log directory exists 
                         Directory.CreateDirectory(dir);
-                    }
                 }
                 catch
-                {
-                    // Do not crash OnLoad for logging setup.
+                {  // Do not crash OnLoad for logging setup.
                 }
             }
 
             Setting setting = new Setting(this);
             Setting = setting;
 
-            // Locales: EN only for now.
             LocalizationManager? lm = GameManager.instance?.localizationManager;
             if (lm != null)
             {
@@ -75,15 +69,13 @@ namespace RiderControl
                 s_Log.Warn($"{ModTag} LocalizationManager is null; skipping locale registration.");
             }
 
-            // Load saved settings (if any). Defaults are defined in Setting.SetDefaults().
             Setting defaults = new Setting(this);
             AssetDatabase.global.LoadSettings(ModId, setting, defaults, userSetting: true);
 
-            // Register in Options UI last.
             setting.RegisterInOptionsUI();
 
-            // RiderControl run after ResidentAISystem (so it “sticks”) and before TaxiDispatchSystem
-            // (so it can cancel requests before dispatch happens).
+            // Register systems.
+            updateSystem.UpdateBefore<MovingAwayFixSystem, ResidentAISystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateAfter<RiderControlSystem, ResidentAISystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateBefore<RiderControlSystem, TaxiDispatchSystem>(SystemUpdatePhase.GameSimulation);
             updateSystem.UpdateBefore<RiderControlSystem, RideNeederSystem>(SystemUpdatePhase.GameSimulation);

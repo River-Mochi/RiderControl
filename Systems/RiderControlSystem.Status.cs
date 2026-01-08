@@ -10,14 +10,14 @@ namespace RiderControl
     using Game.Events;          // InvolvedInAccident
     using Game.Prefabs;         // PrefabSystem, PrefabRef
     using Game.Routes;          // TaxiStand, WaitingPassengers
-    using Game.Simulation;      // TaxiRequest, TaxiRequestType, ServiceDispatch
+   // using Game.Simulation;      // TaxiRequest, ServiceDispatch (use full names or compile issues)
     using Game.Tools;           // Temp
     using Game.Vehicles;        // Taxi, TaxiFlags, ParkedCar
     using System;               // DateTime, Math
     using System.Globalization; // CultureInfo
     using Unity.Entities;       // SystemAPI, EntityQuery
-    using BuildingTransportDepot = Game.Buildings.TransportDepot;
-    using CreatureResident = Game.Creatures.Resident;
+    using BuildingTransportDepot = Game.Buildings.TransportDepot;       // Alias
+    using CreatureResident = Game.Creatures.Resident;                   // Alias
     using UTime = UnityEngine.Time;
 
     public partial class RiderControlSystem
@@ -25,21 +25,16 @@ namespace RiderControl
         private const double kAutoRefreshMinSeconds = 240.0;      // auto-refresh every 4 min (real time)
         private const double kAgeShowSecondsMaxSeconds = 3600.0;  // show Xm Ys until 1 hour, then switch to Xh Ym.
 
-        private const string kCityScanNotReady =
-            "No transit processed yet. Load a city and let it run a few minutes.";
-
-        private const string kTaxiScanNotReady =
-            "Stats not available yet. Load a city and let it run a few minutes.";
-
-        private const string kActivityNotReady =
-            "No activity recorded yet. Load a city and let it run a few minutes.";
+        private const string kNotReadyValue = "n/a";
 
         private static bool s_StatusRefreshRequested;
         private static bool s_StatusForceRefresh;
 
+        // NOTE: Must NOT be readonly (we assign to these).
         internal static double s_StatusLastSnapshotRealtime;
-        internal static string s_StatusLastSnapshotClock = "n/a";
+        internal static string s_StatusLastSnapshotClock = kNotReadyValue;
 
+        // Snapshot counters (must NOT be readonly).
         internal static int s_StatusResidentsTotal;
         internal static int s_StatusResidentsIgnoreTaxi;
         internal static int s_StatusResidentsForcedMarker;
@@ -60,6 +55,7 @@ namespace RiderControl
         internal static int s_StatusHouseholdsMovingAway;
         internal static int s_StatusResidentsInMovingAwayHousehold;
 
+        // InfoView monthly passengers
         internal static int s_InfoTaxiTourist;
         internal static int s_InfoTaxiCitizen;
         internal static int s_InfoBusTourist;
@@ -79,6 +75,7 @@ namespace RiderControl
         internal static int s_InfoTotalTourist;
         internal static int s_InfoTotalCitizen;
 
+        // Taxi requests
         internal static int s_StatusReqStand;
         internal static int s_StatusReqCustomer;
         internal static int s_StatusReqOutside;
@@ -89,6 +86,7 @@ namespace RiderControl
         internal static int s_StatusReqOutsideSeekerHasResident;
         internal static int s_StatusReqOutsideSeekerIgnoreTaxi;
 
+        // Taxi fleet
         internal static int s_StatusTaxisTotal;
         internal static int s_StatusTaxiTransporting;
         internal static int s_StatusTaxiBoarding;
@@ -101,14 +99,17 @@ namespace RiderControl
         internal static int s_StatusTaxiDisabled;
         internal static int s_StatusTaxiWithDispatchBuffer;
 
+        // Passengers in taxis
         internal static int s_StatusPassengerTotal;
         internal static int s_StatusPassengerHasResident;
         internal static int s_StatusPassengerIgnoreTaxi;
 
+        // Stands/depots
         internal static int s_StatusTaxiStandsTotal;
         internal static int s_StatusTaxiDepotsTotal;
         internal static int s_StatusTaxiDepotsWithDispatchCenter;
 
+        // “Last update” counters written by Core.
         internal static int s_StatusLastAppliedIgnoreTaxi;
         internal static int s_StatusLastSkippedCommuters;
         internal static int s_StatusLastSkippedTourists;
@@ -116,14 +117,14 @@ namespace RiderControl
         internal static int s_StatusLastClearedTaxiStandWaiting;
         internal static int s_StatusLastRemovedRideNeeder;
 
-        private CityStatisticsSystem? m_CityStatisticsSystem;
+        private Game.Simulation.CityStatisticsSystem? m_CityStatisticsSystem;
         private PrefabSystem? m_PrefabSystem;
         private EntityQuery m_TransportConfigQuery;
         private UITransportConfigurationPrefab? m_TransportConfig;
 
         private void InitStatusSystemsOnCreate()
         {
-            m_CityStatisticsSystem = World.GetOrCreateSystemManaged<CityStatisticsSystem>();
+            m_CityStatisticsSystem = World.GetOrCreateSystemManaged<Game.Simulation.CityStatisticsSystem>();
             m_PrefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
             m_TransportConfigQuery = GetEntityQuery(ComponentType.ReadOnly<UITransportConfigurationData>());
         }
@@ -131,7 +132,7 @@ namespace RiderControl
         private void ResetStatusOnCityLoaded()
         {
             s_StatusLastSnapshotRealtime = 0.0;
-            s_StatusLastSnapshotClock = "n/a";
+            s_StatusLastSnapshotClock = kNotReadyValue;
 
             s_StatusRefreshRequested = false;
             s_StatusForceRefresh = false;
@@ -174,12 +175,11 @@ namespace RiderControl
             s_StatusLastSnapshotRealtime = now;
             try
             {
-                s_StatusLastSnapshotClock =
-                    DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
+                s_StatusLastSnapshotClock = DateTime.Now.ToString("HH:mm:ss", CultureInfo.InvariantCulture);
             }
             catch
             {
-                s_StatusLastSnapshotClock = "n/a";
+                s_StatusLastSnapshotClock = kNotReadyValue;
             }
         }
 
@@ -271,17 +271,19 @@ namespace RiderControl
                     s_StatusWaitingTaxiStandTotal += count;
             }
 
-            foreach (RefRO<TaxiRequest> reqRef in SystemAPI.Query<RefRO<TaxiRequest>>().WithNone<Deleted, Temp>())
+            foreach (RefRO<Game.Simulation.TaxiRequest> reqRef in SystemAPI
+                         .Query<RefRO<Game.Simulation.TaxiRequest>>()
+                         .WithNone<Deleted, Temp>())
             {
-                TaxiRequest req = reqRef.ValueRO;
+                Game.Simulation.TaxiRequest req = reqRef.ValueRO;
 
                 switch (req.m_Type)
                 {
-                    case TaxiRequestType.Stand:
+                    case Game.Simulation.TaxiRequestType.Stand:
                         s_StatusReqStand++;
                         break;
 
-                    case TaxiRequestType.Customer:
+                    case Game.Simulation.TaxiRequestType.Customer:
                         s_StatusReqCustomer++;
                         if (SystemAPI.HasComponent<CreatureResident>(req.m_Seeker))
                         {
@@ -293,7 +295,7 @@ namespace RiderControl
                         }
                         break;
 
-                    case TaxiRequestType.Outside:
+                    case Game.Simulation.TaxiRequestType.Outside:
                         s_StatusReqOutside++;
                         if (SystemAPI.HasComponent<CreatureResident>(req.m_Seeker))
                         {
@@ -341,9 +343,9 @@ namespace RiderControl
                 if ((flags & TaxiFlags.Disabled) != 0)
                     s_StatusTaxiDisabled++;
 
-                if (SystemAPI.HasBuffer<ServiceDispatch>(taxiEntity))
+                if (SystemAPI.HasBuffer<Game.Simulation.ServiceDispatch>(taxiEntity))
                 {
-                    DynamicBuffer<ServiceDispatch> buf = SystemAPI.GetBuffer<ServiceDispatch>(taxiEntity);
+                    DynamicBuffer<Game.Simulation.ServiceDispatch> buf = SystemAPI.GetBuffer<Game.Simulation.ServiceDispatch>(taxiEntity);
                     if (buf.IsCreated && buf.Length > 0)
                         s_StatusTaxiWithDispatchBuffer++;
                 }
@@ -556,7 +558,7 @@ namespace RiderControl
         internal static bool HasSnapshot() => s_StatusLastSnapshotRealtime > 0.0;
 
         internal static string GetStatusLastStampText() =>
-            string.IsNullOrEmpty(s_StatusLastSnapshotClock) ? "n/a" : s_StatusLastSnapshotClock;
+            string.IsNullOrEmpty(s_StatusLastSnapshotClock) ? kNotReadyValue : s_StatusLastSnapshotClock;
 
         internal static double GetStatusAgeSeconds()
         {
@@ -571,7 +573,7 @@ namespace RiderControl
         {
             double age = GetStatusAgeSeconds();
             if (age < 0.0)
-                return "n/a";
+                return kNotReadyValue;
 
             long sec = (long)Math.Round(age, MidpointRounding.AwayFromZero);
 
@@ -590,8 +592,8 @@ namespace RiderControl
             return $"{hr}h {min}m";
         }
 
-        internal static string GetCityScanNotReadyText() => kCityScanNotReady;
-        internal static string GetTaxiScanNotReadyText() => kTaxiScanNotReady;
+        internal static string GetCityScanNotReadyText() => kNotReadyValue;
+        internal static string GetTaxiScanNotReadyText() => kNotReadyValue;
 
         internal static bool HasActivity()
         {
@@ -603,6 +605,6 @@ namespace RiderControl
                 || s_StatusLastRemovedRideNeeder != 0;
         }
 
-        internal static string GetActivityNotReadyText() => kActivityNotReady;
+        internal static string GetActivityNotReadyText() => kNotReadyValue;
     }
 }

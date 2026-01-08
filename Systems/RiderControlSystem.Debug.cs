@@ -13,6 +13,12 @@ namespace RiderControl
 
     public partial class RiderControlSystem
     {
+#if DEBUG
+        // Used by MovingAwayFixSystem advanced debug.
+        internal static int s_DebugLastMovingAwayFixCleared;
+        internal static int s_DebugTotalMovingAwayFixCleared;
+#endif
+
         private const int kDebugPassengerDetailMax = 8;
 
         private float m_DebugTimerSeconds;
@@ -20,6 +26,11 @@ namespace RiderControl
         private void ResetDebugOnCityLoaded()
         {
             m_DebugTimerSeconds = 0f;
+
+#if DEBUG
+            s_DebugLastMovingAwayFixCleared = 0;
+            s_DebugTotalMovingAwayFixCleared = 0;
+#endif
         }
 
         private void TickDebugLogging(Setting setting, float intervalSeconds, int clearedTaxiStandWaitingPassengers)
@@ -41,8 +52,11 @@ namespace RiderControl
             {
                 if (m_CityStatisticsSystem != null)
                 {
-                    dailyTaxiCitizen = m_CityStatisticsSystem.GetStatisticValue(StatisticType.PassengerCountTaxi, (int)PassengerType.Citizen);
-                    dailyTaxiTourist = m_CityStatisticsSystem.GetStatisticValue(StatisticType.PassengerCountTaxi, (int)PassengerType.Tourist);
+                    dailyTaxiCitizen = m_CityStatisticsSystem.GetStatisticValue(
+                        StatisticType.PassengerCountTaxi, (int)PassengerType.Citizen);
+
+                    dailyTaxiTourist = m_CityStatisticsSystem.GetStatisticValue(
+                        StatisticType.PassengerCountTaxi, (int)PassengerType.Tourist);
                 }
             }
             catch

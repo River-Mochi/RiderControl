@@ -5,32 +5,63 @@
 // - Marks request-like entities with Deleted (game cleans up).
 // - Clears WaitingPassengers and detaches RouteVehicle entries.
 // - Does NOT touch DispatchedRequest (namespace/type varies by game version; avoid compile breaks).
+// - Interval/timer is owned here so Core stays clean.
 
 namespace RiderControl
 {
-    using Game.Common;      // Deleted, Temp
-    using Game.Pathfind;    // PathOwner, PathFlags
-    using Game.Routes;      // TaxiStand, TaxiStandFlags, WaitingPassengers, RouteVehicle, CurrentRoute
-    using Game.Simulation;  // TaxiRequest, TaxiRequestType
-    using Game.Tools;       // Temp
-    using Unity.Collections;
+    using Game.Common;       // Deleted
+    using Game.Pathfind;     // PathOwner, PathFlags
+    using Game.Routes;       // TaxiStand, TaxiStandFlags, WaitingPassengers, RouteVehicle, CurrentRoute
+    // using Game.Simulation;   // TaxiRequest, TaxiRequestType  (use full name or compile issues)
+    using Game.Tools;        // Temp
+    using Unity.Collections; // NativeParallelHashSet
     using Unity.Entities;
+    using UTime = UnityEngine.Time;
 
     public partial class RiderControlSystem
     {
+        // Slow side-pass by design: we don't need to do this often.
+        private const float kTaxiStandBlockIntervalSeconds = 12.0f;
+
+        private float m_TaxiStandBlockTimerSeconds;
+
+        private void ResetBlockTaxiStandsOnCityLoaded()
+        {
+            m_TaxiStandBlockTimerSeconds = 0f;
+        }
+
+        // Called by Core. Core does not know/own the interval.
+        private int TickBlockTaxiStandDemandInterval(bool enabled)
+        {
+            if (!enabled)
+            {
+                // Important: reset timer so toggling ON doesn't “insta-fire” from old accumulated time.
+                m_TaxiStandBlockTimerSeconds = 0f;
+                return 0;
+            }
+
+            m_TaxiStandBlockTimerSeconds += UTime.unscaledDeltaTime;
+            if (m_TaxiStandBlockTimerSeconds < kTaxiStandBlockIntervalSeconds)
+                return 0;
+
+            m_TaxiStandBlockTimerSeconds = 0f;
+            return TickBlockTaxiStandDemand();
+        }
+
         private int TickBlockTaxiStandDemand()
         {
             int clearedWaitingCount = 0;
 
-            using NativeParallelHashSet<Entity> toDelete = new NativeParallelHashSet<Entity>(256, Allocator.Temp);
+            using NativeParallelHashSet<Entity> toDelete =
+                new NativeParallelHashSet<Entity>(256, Allocator.Temp);
 
             // 1) Collect Stand-type TaxiRequest entities whose seeker is a TaxiStand.
-            foreach ((RefRO<TaxiRequest> req, Entity reqEntity) in SystemAPI
-                         .Query<RefRO<TaxiRequest>>()
+            foreach ((RefRO<Game.Simulation.TaxiRequest> req, Entity reqEntity) in SystemAPI
+                         .Query<RefRO<Game.Simulation.TaxiRequest>>()
                          .WithEntityAccess()
                          .WithNone<Deleted, Temp>())
             {
-                if (req.ValueRO.m_Type != TaxiRequestType.Stand)
+                if (req.ValueRO.m_Type != Game.Simulation.TaxiRequestType.Stand)
                     continue;
 
                 Entity seeker = req.ValueRO.m_Seeker;
