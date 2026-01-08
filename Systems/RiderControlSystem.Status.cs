@@ -10,7 +10,7 @@ namespace RiderControl
     using Game.Events;          // InvolvedInAccident
     using Game.Prefabs;         // PrefabSystem, PrefabRef
     using Game.Routes;          // TaxiStand, WaitingPassengers
-   // using Game.Simulation;      // TaxiRequest, ServiceDispatch (use full names or compile issues)
+   // using Game.Simulation;    // TaxiRequest (use full qualified names or partials get compile issues as Game.Simulation is not in Core.cs)
     using Game.Tools;           // Temp
     using Game.Vehicles;        // Taxi, TaxiFlags, ParkedCar
     using System;               // DateTime, Math
