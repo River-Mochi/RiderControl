@@ -41,9 +41,9 @@ namespace RiderControl
 
             m_DebugTimerSeconds = 0f;
 
-            double age = RiderControlSystem.GetStatusAgeSeconds();
+            double age = GetStatusAgeSeconds();
             if (age < 0.0 || age > 30.0)
-                RiderControlSystem.RequestStatusRefresh(force: true);
+                RequestStatusRefresh(force: true);
 
             int dailyTaxiCitizen = 0;
             int dailyTaxiTourist = 0;

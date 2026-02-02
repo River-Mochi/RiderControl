@@ -14,40 +14,40 @@ namespace RiderControl
     [FileLocation("ModsSettings/SmartTraveler/SmartTraveler")]
     [SettingsUIGroupOrder(
         BehaviorGroup,
-        DebugGroup,
         CityScanGroup,
         TaxiScanGroup,
         LastUpdateGroup,
         AdvancedDebugGroup,
         AboutInfoGroup,
+        DebugGroup,
         AboutLinksGroup
     )]
     [SettingsUIShowGroupName(
         BehaviorGroup,
-        DebugGroup,
         CityScanGroup,
         TaxiScanGroup,
         LastUpdateGroup,
         AdvancedDebugGroup,
+        DebugGroup,
         AboutLinksGroup
     )]
 #else
     [FileLocation("ModsSettings/SmartTraveler/SmartTraveler")]
     [SettingsUIGroupOrder(
         BehaviorGroup,
-        DebugGroup,
         CityScanGroup,
         TaxiScanGroup,
         LastUpdateGroup,
         AboutInfoGroup,
+        DebugGroup,
         AboutLinksGroup
     )]
     [SettingsUIShowGroupName(
         BehaviorGroup,
-        DebugGroup,
         CityScanGroup,
         TaxiScanGroup,
         LastUpdateGroup,
+        DebugGroup,
         AboutLinksGroup
     )]
 #endif
@@ -143,7 +143,8 @@ namespace RiderControl
             return !IsStatusReady();
         }
 
-        [SettingsUISection(ActionsTab, DebugGroup)]
+        // Moved to About tab (requested).
+        [SettingsUISection(AboutTab, DebugGroup)]
         public bool EnableDebugLogging
         {
             get; set;
@@ -184,7 +185,7 @@ namespace RiderControl
             }
         }
 
-        // CITY SCAN (numbers-only; meanings in LocaleEN)
+        // CITY SCAN (labels restored inside value)
         [SettingsUISection(StatusTab, CityScanGroup)]
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
         public string StatusMonthlyPassengers1
@@ -193,12 +194,8 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_InfoTaxiCitizen:N0} | " +
-                    $"{RiderControlSystem.s_InfoBusCitizen:N0} | " +
-                    $"{RiderControlSystem.s_InfoTramCitizen:N0} | " +
-                    $"{RiderControlSystem.s_InfoTrainCitizen:N0} | " +
-                    $"{RiderControlSystem.s_InfoSubwayCitizen:N0} | " +
-                    $"{RiderControlSystem.s_InfoAirCitizen:N0}";
+                    $"Taxi {RiderControlSystem.s_InfoTaxiCitizen:N0} | Bus {RiderControlSystem.s_InfoBusCitizen:N0} | Tram {RiderControlSystem.s_InfoTramCitizen:N0}\n" +
+                    $"Train {RiderControlSystem.s_InfoTrainCitizen:N0} | Subway {RiderControlSystem.s_InfoSubwayCitizen:N0} | Air {RiderControlSystem.s_InfoAirCitizen:N0}";
             }
         }
 
@@ -210,12 +207,8 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_InfoTaxiTourist:N0} | " +
-                    $"{RiderControlSystem.s_InfoBusTourist:N0} | " +
-                    $"{RiderControlSystem.s_InfoTramTourist:N0} | " +
-                    $"{RiderControlSystem.s_InfoTrainTourist:N0} | " +
-                    $"{RiderControlSystem.s_InfoSubwayTourist:N0} | " +
-                    $"{RiderControlSystem.s_InfoAirTourist:N0}";
+                    $"Taxi {RiderControlSystem.s_InfoTaxiTourist:N0} | Bus {RiderControlSystem.s_InfoBusTourist:N0} | Tram {RiderControlSystem.s_InfoTramTourist:N0}\n" +
+                    $"Train {RiderControlSystem.s_InfoTrainTourist:N0} | Subway {RiderControlSystem.s_InfoSubwayTourist:N0} | Air {RiderControlSystem.s_InfoAirTourist:N0}";
             }
         }
 
@@ -227,13 +220,11 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusWaitingTransportTotal:N0} | " +
-                    $"{RiderControlSystem.s_InfoTotalTourist:N0} | " +
-                    $"{RiderControlSystem.s_InfoTotalCitizen:N0}";
+                    $"WaitNow {RiderControlSystem.s_StatusWaitingTransportTotal:N0} | Tour/mo {RiderControlSystem.s_InfoTotalTourist:N0} | Cit/mo {RiderControlSystem.s_InfoTotalCitizen:N0}";
             }
         }
 
-        // TAXI SCAN (numbers-only; meanings in LocaleEN)
+        // TAXI SCAN (labels restored inside value)
 
         [SettingsUISection(StatusTab, TaxiScanGroup)]
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
@@ -243,10 +234,7 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusTaxisTotal:N0} | " +
-                    $"{RiderControlSystem.s_StatusTaxiDepotsTotal:N0} | " +
-                    $"{RiderControlSystem.s_StatusTaxiDepotsWithDispatchCenter:N0} | " +
-                    $"{RiderControlSystem.s_StatusTaxiStandsTotal:N0}";
+                    $"Taxis {RiderControlSystem.s_StatusTaxisTotal:N0} | Depots {RiderControlSystem.s_StatusTaxiDepotsTotal:N0} | Dispatch {RiderControlSystem.s_StatusTaxiDepotsWithDispatchCenter:N0} | Stands {RiderControlSystem.s_StatusTaxiStandsTotal:N0}";
             }
         }
 
@@ -258,9 +246,7 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusPassengerTotal:N0} | " +
-                    $"{RiderControlSystem.s_StatusPassengerIgnoreTaxi:N0} | " +
-                    $"{RiderControlSystem.s_StatusPassengerHasResident:N0}";
+                    $"Total {RiderControlSystem.s_StatusPassengerTotal:N0} | IgnoreTaxi {RiderControlSystem.s_StatusPassengerIgnoreTaxi:N0} | HasResident {RiderControlSystem.s_StatusPassengerHasResident:N0}";
             }
         }
 
@@ -272,9 +258,7 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusReqCustomer:N0} | " +
-                    $"{RiderControlSystem.s_StatusReqOutside:N0} | " +
-                    $"{RiderControlSystem.s_StatusReqNone:N0}";
+                    $"Cust {RiderControlSystem.s_StatusReqCustomer:N0} | Outside {RiderControlSystem.s_StatusReqOutside:N0} | None {RiderControlSystem.s_StatusReqNone:N0}";
             }
         }
 
@@ -286,12 +270,8 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusTaxiTransporting:N0} | " +
-                    $"{RiderControlSystem.s_StatusTaxiBoarding:N0} | " +
-                    $"{RiderControlSystem.s_StatusTaxiReturning:N0} | " +
-                    $"{RiderControlSystem.s_StatusTaxiDispatched:N0} | " +
-                    $"{RiderControlSystem.s_StatusTaxiEnRoute:N0} | " +
-                    $"{RiderControlSystem.s_StatusTaxiParked:N0}";
+                    $"Trans {RiderControlSystem.s_StatusTaxiTransporting:N0} | Board {RiderControlSystem.s_StatusTaxiBoarding:N0} | Return {RiderControlSystem.s_StatusTaxiReturning:N0}\n" +
+                    $"Dispatch {RiderControlSystem.s_StatusTaxiDispatched:N0} | EnRoute {RiderControlSystem.s_StatusTaxiEnRoute:N0} | Parked {RiderControlSystem.s_StatusTaxiParked:N0}";
             }
         }
 
@@ -303,12 +283,11 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusWaitingTaxiStandTotal:N0} | " +
-                    $"{RiderControlSystem.s_StatusReqStand:N0}";
+                    $"Waiting {RiderControlSystem.s_StatusWaitingTaxiStandTotal:N0} | StandReq {RiderControlSystem.s_StatusReqStand:N0}";
             }
         }
 
-        // LAST UPDATE (numbers-only; meanings in LocaleEN)
+        // LAST UPDATE (labels restored inside value)
 
         [SettingsUISection(StatusTab, LastUpdateGroup)]
         [SettingsUIHideByCondition(typeof(Setting), nameof(IsStatusNotReady))]
@@ -317,7 +296,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"{RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0} | {RiderControlSystem.s_StatusResidentsTotal:N0}";
+                return $"IgnoreTaxi {RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusResidentsTotal:N0}";
             }
         }
 
@@ -329,8 +308,8 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusCommutersIgnoreTaxi:N0} | {RiderControlSystem.s_StatusCommutersTotal:N0} | " +
-                    $"{RiderControlSystem.s_StatusTouristsIgnoreTaxi:N0} | {RiderControlSystem.s_StatusTouristsTotal:N0}";
+                    $"Comm {RiderControlSystem.s_StatusCommutersIgnoreTaxi:N0}/{RiderControlSystem.s_StatusCommutersTotal:N0} | " +
+                    $"Tour {RiderControlSystem.s_StatusTouristsIgnoreTaxi:N0}/{RiderControlSystem.s_StatusTouristsTotal:N0}";
             }
         }
 
@@ -342,9 +321,9 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusLastAppliedIgnoreTaxi:N0} | " +
-                    $"{RiderControlSystem.s_StatusLastRemovedRideNeeder:N0} | " +
-                    $"{RiderControlSystem.s_StatusLastClearedTaxiLaneWaiting:N0}";
+                    $"Applied {RiderControlSystem.s_StatusLastAppliedIgnoreTaxi:N0} | " +
+                    $"RideClear {RiderControlSystem.s_StatusLastRemovedRideNeeder:N0} | " +
+                    $"LaneClear {RiderControlSystem.s_StatusLastClearedTaxiLaneWaiting:N0}";
             }
         }
 
@@ -356,9 +335,9 @@ namespace RiderControl
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
                 return
-                    $"{RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} | " +
-                    $"{RiderControlSystem.s_StatusLastSkippedCommuters:N0} | " +
-                    $"{RiderControlSystem.s_StatusLastSkippedTourists:N0}";
+                    $"StandClear {RiderControlSystem.s_StatusLastClearedTaxiStandWaiting:N0} | " +
+                    $"SkipComm {RiderControlSystem.s_StatusLastSkippedCommuters:N0} | " +
+                    $"SkipTour {RiderControlSystem.s_StatusLastSkippedTourists:N0}";
             }
         }
 
@@ -369,7 +348,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"{RiderControlSystem.GetStatusLastStampText()} | {RiderControlSystem.GetStatusAgeText()}";
+                return $"At {RiderControlSystem.GetStatusLastStampText()} | Age {RiderControlSystem.GetStatusAgeText()}";
             }
         }
 
@@ -383,7 +362,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"{RiderControlSystem.s_StatusResidentsForcedMarker:N0} | {RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0} | {RiderControlSystem.s_StatusResidentsTotal:N0}";
+                return $"Marked {RiderControlSystem.s_StatusResidentsForcedMarker:N0} | IgnoreTaxi {RiderControlSystem.s_StatusResidentsIgnoreTaxi:N0} | Total {RiderControlSystem.s_StatusResidentsTotal:N0}";
             }
         }
 
@@ -394,7 +373,7 @@ namespace RiderControl
             get
             {
                 RiderControlSystem.AutoRequestStatusRefreshOnRead();
-                return $"{RiderControlSystem.s_StatusTaxiWithDispatchBuffer:N0} | {RiderControlSystem.s_StatusTaxiFromOutside:N0} | {RiderControlSystem.s_StatusTaxiDisabled:N0}";
+                return $"DispatchBuf {RiderControlSystem.s_StatusTaxiWithDispatchBuffer:N0} | Outside {RiderControlSystem.s_StatusTaxiFromOutside:N0} | Disabled {RiderControlSystem.s_StatusTaxiDisabled:N0}";
             }
         }
 #endif
